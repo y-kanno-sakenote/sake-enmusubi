@@ -93,7 +93,7 @@
 <div class="layers" id="layers"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="map_data.js?v=1787728878"></script>
+<script src="map_data.js?v=1787745623"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
 L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
@@ -208,7 +208,7 @@ hitsEl.addEventListener('click', e => {
 });
 
 document.getElementById('count').textContent =
-  `全${KURA_MAP.length}者（${LAYERS.map(g => g.name + counts[g.id]).join('・')}）／濃い印は物語つき`
+  `名簿の全組合員 ${KURA_MAP.length}者（${LAYERS.map(g => g.name + counts[g.id]).join('・')}）／濃い印は物語つき`
   + `／蔵元データ: 日本酒造組合中央会 組合員名簿・座標: 国土地理院`;
 </script>
 </body>
