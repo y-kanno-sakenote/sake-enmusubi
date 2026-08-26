@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>酒縁結び — その人と、縁のある一本</title>
+<meta name="description" content="推しや大切な人を描くと、縁のある日本酒が見つかる。全国1,600の蔵元データベースから、味ではなく「縁」で一本を結びます。">
+<meta property="og:title" content="酒縁結び — その人と、縁のある一本">
+<meta property="og:description" content="推しや大切な人を描くと、縁のある日本酒が見つかる。名前の一字・ゆかりの土地・今日の気分から、全国の蔵と縁を結ぶおみくじ型レコメンド。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://y-kanno-sakenote.github.io/sake-enmusubi/">
+<meta name="twitter:card" content="summary">
+<style>
+  :root {
+    --paper: #faf6ee;
+    --ink: #2b2b33;
+    --sub: #6d6a60;
+    --accent: #a63d40;
+    --line: #d9d2c2;
+    --card: #fffdf7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+    line-height: 1.8;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 64px;
+  }
+  main { width: 100%; max-width: 480px; }
+  header { text-align: center; padding: 24px 0 8px; }
+  h1 { font-size: 2rem; letter-spacing: 0.35em; text-indent: 0.35em; font-weight: 600; }
+  .tagline { color: var(--sub); font-size: 0.9rem; margin-top: 6px; letter-spacing: 0.1em; }
+  .divider { text-align: center; color: var(--accent); margin: 18px 0; letter-spacing: 0.5em; text-indent: 0.5em; font-size: 0.8rem; }
+
+  .q { margin-bottom: 26px; }
+  .q-label { font-size: 0.95rem; margin-bottom: 10px; }
+  .q-label small { color: var(--sub); font-size: 0.78rem; margin-left: 8px; }
+  .chips { display: flex; gap: 10px; }
+  .chip {
+    flex: 1; text-align: center; padding: 10px 4px;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: var(--card); cursor: pointer; font-size: 0.95rem;
+    font-family: inherit; color: var(--ink); transition: all 0.15s;
+  }
+  .chip.on { border-color: var(--accent); color: var(--accent); background: #fdf3f0; }
+  select, input[type="text"], input[type="number"] {
+    width: 100%; padding: 10px 12px; font-size: 1rem;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: var(--card); color: var(--ink); font-family: inherit;
+  }
+  input::placeholder { color: #b8b2a4; }
+
+  .musubu {
+    display: block; width: 100%; margin-top: 8px; padding: 15px;
+    background: var(--accent); color: #fff; border: none; border-radius: 4px;
+    font-size: 1.1rem; letter-spacing: 0.4em; text-indent: 0.4em;
+    font-family: inherit; cursor: pointer;
+  }
+  .musubu:active { opacity: 0.85; }
+
+  #result { display: none; margin-top: 34px; }
+  .fuda {
+    background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    padding: 30px 24px; text-align: center; position: relative;
+  }
+  .fuda::before {
+    content: "御縁"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #fff; font-size: 0.75rem;
+    padding: 2px 14px; border-radius: 3px; letter-spacing: 0.3em; text-indent: 0.3em;
+  }
+  .r-place { color: var(--sub); font-size: 0.85rem; margin-bottom: 6px; }
+  .r-brand { font-size: 1.9rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; }
+  .r-kura { font-size: 0.95rem; margin-top: 4px; }
+  .r-reason {
+    margin: 20px 0 4px; padding-top: 18px; border-top: 1px dashed var(--line);
+    text-align: left; font-size: 0.98rem;
+  }
+  .r-story { color: var(--sub); font-size: 0.88rem; margin-top: 16px; text-align: left; border-left: 2px solid var(--line); padding-left: 10px; }
+  .r-dedic { color: var(--accent); font-size: 0.9rem; margin-top: 10px; text-align: left; }
+  .r-links { margin-top: 16px; display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+  .r-hp { display: inline-block; font-size: 0.85rem; color: var(--ink); }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .actions button {
+    flex: 1; padding: 11px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--card); font-family: inherit; font-size: 0.9rem;
+    color: var(--ink); cursor: pointer;
+  }
+  footer { margin-top: 44px; color: var(--sub); font-size: 0.72rem; text-align: center; line-height: 1.7; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>酒縁結び</h1>
+    <p class="tagline">その人と、縁のある一本。</p>
+  </header>
+  <p class="divider">◆　◆　◆</p>
+
+  <div class="q">
+    <p class="q-label">この一本は、誰のため？</p>
+    <div class="chips" id="who">
+      <button class="chip on" data-v="oshi">推しに</button>
+      <button class="chip" data-v="hito">あの人に</button>
+      <button class="chip" data-v="jibun">自分に</button>
+    </div>
+  </div>
+
+  <div class="q">
+    <p class="q-label">今日はどんな日？<small>任意・もう一度押すと外せます</small></p>
+    <div class="chips" id="mood" style="flex-wrap:wrap;">
+      <button class="chip" data-v="iwau" style="flex:1 1 auto; padding:10px 12px;">祝いたい日</button>
+      <button class="chip" data-v="ganbatta" style="flex:1 1 auto; padding:10px 12px;">がんばった日</button>
+      <button class="chip" data-v="hajimeta" style="flex:1 1 auto; padding:10px 12px;">新しく始めた日</button>
+      <button class="chip" data-v="natsukashii" style="flex:1 1 auto; padding:10px 12px;">懐かしい日</button>
+      <button class="chip" data-v="hekonda" style="flex:1 1 auto; padding:10px 12px;">へこんだ日</button>
+    </div>
+  </div>
+
+  <div class="q">
+    <p class="q-label">ゆかりの土地は？<small>出身地・思い出の場所</small></p>
+    <select id="pref"><option value="">おまかせ（土地は問わない）</option></select>
+  </div>
+
+  <div class="q">
+    <p class="q-label">生まれた年<small>任意・西暦</small></p>
+    <input type="number" inputmode="numeric" id="year" placeholder="1995" min="1900" max="2026">
+  </div>
+
+  <div class="q">
+    <p class="q-label">名前から、一字<small>任意</small></p>
+    <input type="text" id="moji" maxlength="4" placeholder="例：桜">
+  </div>
+
+  <div class="q">
+    <p class="q-label">一言でいうと、どんな人？<small>任意</small></p>
+    <input type="text" id="hito-desc" maxlength="30" placeholder="例：一見クールで、実はあつい">
+  </div>
+
+  <button class="musubu" id="go">縁 を 結 ぶ</button>
+
+  <section id="result">
+    <div class="fuda">
+      <p class="r-place" id="r-place"></p>
+      <p class="r-brand" id="r-brand"></p>
+      <p class="r-kura" id="r-kura"></p>
+      <div class="r-reason" id="r-reason"></div>
+      <p class="r-story" id="r-story"></p>
+      <p class="r-dedic" id="r-dedic"></p>
+      <div class="r-links">
+        <a class="r-hp" id="r-hp" target="_blank" rel="noopener"></a>
+        <a class="r-hp" id="r-map" target="_blank" rel="noopener"></a>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="copy">結果をコピー</button>
+      <button id="again">もう一度、縁を結ぶ</button>
+    </div>
+  </section>
+
+  <footer>
+    蔵元データ：日本酒造組合中央会「組合員名簿」（2026年時点・全国<span id="kura-count"></span>蔵）<br>
+    酒縁結びは味の好みを当てるものではありません。縁は、飲んでみる理由。<br>
+    <a href="map.html" style="color:var(--accent);">縁の地図（全国の蔵と物語）→</a><br>
+    お酒は20歳になってから。
+  </footer>
+</main>
+
+<script src="kura_data.js?v=1787728878"></script>
+<script>
+const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
+const sel = document.getElementById('pref');
+PREFS.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+document.getElementById('kura-count').textContent = KURA.length.toLocaleString();
+
+let who = 'oshi';
+document.getElementById('who').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  document.querySelectorAll('#who .chip').forEach(c => c.classList.remove('on'));
+  b.classList.add('on');
+  who = b.dataset.v;
+});
+
+// 気分縁：気分→物語タグ／銘柄の字義への接続（味には翻訳しない）
+let mood = null;
+document.getElementById('mood').addEventListener('click', e => {
+  const b = e.target.closest('.chip');
+  if (!b) return;
+  const v = b.dataset.v;
+  document.querySelectorAll('#mood .chip').forEach(c => c.classList.remove('on'));
+  if (mood === v) { mood = null; } else { mood = v; b.classList.add('on'); }
+});
+
+const MOODS = {
+  iwau:      { chars: '寿福祝鶴亀喜慶',                    text: null },
+  ganbatta:  { tags: ['受賞歴'],                           text: 'がんばった今日に、賞に輝いた蔵の一本を。' },
+  hajimeta:  { tags: ['新蔵', '転業参入'],                  text: '新しい一歩の日に、同じく新しい一歩を踏み出した蔵を。' },
+  natsukashii: { tags: ['老舗', '伝統製法'],                text: '懐かしい気分の日に、長い時を重ねてきた蔵の一本を。' },
+  hekonda:   { tags: ['復活蔵', '被災・移転からの再起'],     text: 'へこんだ日に。この蔵も一度立ち止まって、また醸し始めました。' },
+};
+
+function moodHit(k) {
+  if (!mood) return false;
+  const m = MOODS[mood];
+  if (m.chars) return [...m.chars].some(c => cleanBrand(k.b).includes(c));
+  return !!(k.t && m.tags.some(t => k.t.includes(t)));
+}
+
+// 呼び名（縁文の主語）
+function mojiChar() {
+  return [...document.getElementById('moji').value.trim()][0] || '';
+}
+document.getElementById('moji').addEventListener('change', e => {
+  e.target.value = [...e.target.value.trim()][0] || '';
+});
+
+function callName() {
+  return who === 'oshi' ? '推し' : who === 'jibun' ? 'あなた' : 'あの人';
+}
+
+// 括弧注記（(商品名…)等）を除いた銘柄文字列。マッチも表示もこちらを使う
+function cleanBrand(b) {
+  return b.replace(/[（(].*?[)）]/g, '');
+}
+
+// 法人格を除いた蔵名。名縁のマッチと縁文表示に使う（「有」が(有)に当たる空振り防止）
+function coreName(n) {
+  return n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]/g, '').trim() || n;
+}
+
+// 銘柄表示用：先頭の1銘柄（括弧除去→分割の順。注記内の「・」で壊れない）
+function mainBrand(b) {
+  return cleanBrand(b).split(/[・／,、]/)[0].trim() || b;
+}
+
+// 一言→物語タグの対応表（タグは出典で確認済みの事実。対応づけだけがこちらの解釈）
+const TAG_WORDS = {
+  '老舗': ['古風','渋い','一途','こつこつ','コツコツ','まじめ','真面目','堅実','昔かたぎ','ぶれない','ブレない','芯がある','芯の','王道','安定','変わらない','信頼','落ち着','大人','風格','ベテラン','レジェンド','長く'],
+  '伝統製法': ['職人','こだわり','頑固','ストイック','求道','寡黙','硬派','本格','妥協しない','丁寧','几帳面','きっちり'],
+  '新蔵': ['新しい','挑戦','型破り','自由','攻め','とがっ','尖っ','ルーキー','新人','勢い','革新','規格外','異端','未来'],
+  '転業参入': ['異色','転身','挑戦','二刀流','マルチ','意外','ギャップ','多才'],
+  '復活蔵': ['あつい','熱い','不屈','あきらめない','諦めない','根性','情熱','復活','カムバック','逆境','ドラマ','泥臭'],
+  '被災・移転からの再起': ['不屈','あきらめない','諦めない','立ち直','へこたれない','逆境','タフ','折れない','強い'],
+  '家族経営': ['家庭的','優しい','やさしい','あたたかい','温かい','ほっとする','癒し','いやし','アットホーム','面倒見','世話焼','ほんわか','和む','笑顔','天然'],
+  '地域唯一・最後の蔵': ['唯一','マイペース','一匹狼','孤高','オンリーワン','個性','独特','特別','無二','クール','ミステリアス'],
+  '受賞歴': ['すごい','一番','エース','天才','実力','最強','トップ','スター','輝','キラキラ','カリスマ','完璧','優勝'],
+  '海外展開': ['グローバル','世界','海外','国際','ワールド','壮大','スケール'],
+  '若手当主': ['若い','元気','フレッシュ','明るい','ひたむき','成長','伸びしろ','頑張','がんば'],
+};
+
+function storyTagFor(k, desc) {
+  if (!desc || !k.t) return null;
+  for (const [tag, words] of Object.entries(TAG_WORDS)) {
+    if (k.t.includes(tag) && words.some(w => desc.includes(w))) return tag;
+  }
+  return null;
+}
+
+function match() {
+  const pref = sel.value;
+  const year = parseInt(document.getElementById('year').value, 10) || null;
+  const moji = mojiChar();
+  const desc = document.getElementById('hito-desc').value.trim();
+
+  let best = null, bestScore = -1;
+  for (const k of KURA) {
+    let s = Math.random() * 30;               // 御縁のゆらぎ
+    const hits = [];
+    if (moji && (cleanBrand(k.b + '・' + (k.b2 || '')).includes(moji) || coreName(k.n).includes(moji))) { s += 120; hits.push('moji'); }
+    const tag = storyTagFor(k, desc);
+    if (tag) { s += 80; hits.push('story'); }
+    if (moodHit(k)) { s += 80; hits.push('mood'); }
+    if (pref && k.p === pref) { s += 60; hits.push('pref'); }
+    if (year && k.y) { s += 10; hits.push('year'); }
+    if (s > bestScore) { bestScore = s; best = { k, hits, tag }; }
+  }
+  return best;
+}
+
+function reasonText(k, hits, tag) {
+  const name = callName();
+  const moji = mojiChar();
+  const year = parseInt(document.getElementById('year').value, 10) || null;
+  const parts = [];
+  if (hits.includes('moji')) {
+    const cb = cleanBrand(k.b + (k.b2 ? '・' + k.b2 : ''));
+    let where;
+    if (cb.includes(moji)) {
+      // 一字を実際に含む銘柄（区切りの中の該当セグメント）を表示する
+      const seg = cb.split(/[・／,、]/).map(x => x.trim()).find(x => x.includes(moji)) || cb.trim();
+      where = `銘柄「${seg}」`;
+    } else {
+      where = `蔵の名「${coreName(k.n)}」`;
+    }
+    parts.push(`${name}の一字「${moji}」が、${where}の中に生きています。`);
+  }
+  if (hits.includes('mood') && mood) {
+    const m = MOODS[mood];
+    if (m.chars) {
+      const c = [...m.chars].find(ch => cleanBrand(k.b).includes(ch));
+      const seg = cleanBrand(k.b).split(/[・／,、]/).map(x => x.trim()).find(x => x.includes(c)) || mainBrand(k.b);
+      parts.push(`祝いの日に、めでたい「${c}」の字を名に持つ「${seg}」を。`);
+    } else {
+      parts.push(m.text);
+    }
+  }
+  if (hits.includes('story') && tag) {
+    const desc = document.getElementById('hito-desc').value.trim();
+    parts.push(`「${desc}」——その言葉に、${tag}の物語を持つこの蔵が応えました。`);
+  }
+  if (hits.includes('pref')) {
+    parts.push(`ゆかりの地・${k.p}の${k.c}で酒を造る蔵です。`);
+  }
+  if (hits.includes('year') && k.y) {
+    const diff = year - k.y;
+    if (diff > 0) parts.push(`${name}が生まれる${diff}年前から、この蔵は酒を造り続けてきました。`);
+    else if (diff < 0) parts.push(`${name}が${-diff}歳の年に生まれた、若い蔵です。`);
+    else parts.push(`${name}と同じ年に、この蔵の歴史も始まりました。`);
+  }
+  if (parts.length === 0) {
+    parts.push(`全国${KURA.length.toLocaleString()}の蔵から、今日の御縁で結ばれた一本です。`);
+  }
+  return parts.slice(0, 2).join('');
+}
+
+function show() {
+  const m = match();
+  if (!m) return;
+  const { k, hits, tag } = m;
+  const desc = document.getElementById('hito-desc').value.trim();
+  document.getElementById('r-place').textContent = `${k.p} ${k.c}`;
+  // 縁を持つ銘柄を札の顔にする（名縁・祝い字が副銘柄にヒットした場合の不一致防止）
+  let face = mainBrand(k.b);
+  const segs = cleanBrand(k.b).split(/[・／,、]/).map(x => x.trim()).filter(Boolean);
+  const mj = mojiChar();
+  if (hits.includes('moji') && mj) face = segs.find(x => x.includes(mj)) || face;
+  else if (hits.includes('mood') && mood && MOODS[mood].chars) {
+    const c = [...MOODS[mood].chars].find(ch => cleanBrand(k.b).includes(ch));
+    if (c) face = segs.find(x => x.includes(c)) || face;
+  }
+  document.getElementById('r-brand').textContent = face;
+  document.getElementById('r-kura').textContent = k.n;
+  document.getElementById('r-reason').textContent = reasonText(k, hits, tag);
+  document.getElementById('r-story').textContent = k.s || '';
+  document.getElementById('r-dedic').textContent = (desc && !hits.includes('story')) ? `「${desc}」——そんな${callName()}の隣に。` : '';
+  const hp = document.getElementById('r-hp');
+  if (k.h) {
+    hp.style.display = '';
+    hp.textContent = '蔵のホームページを見る →';
+    hp.href = /^https?:/i.test(k.h) ? k.h : 'https://' + k.h;
+  } else {
+    hp.style.display = 'none';
+  }
+  const mp = document.getElementById('r-map');
+  mp.textContent = '地図で会いに行く →';
+  mp.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(`${coreName(k.n)} ${k.p} ${k.c}`);
+  const r = document.getElementById('result');
+  r.style.display = 'block';
+  r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window._last = { k, hits, tag, face };
+}
+
+document.getElementById('go').addEventListener('click', show);
+document.getElementById('again').addEventListener('click', show);
+document.getElementById('copy').addEventListener('click', () => {
+  if (!window._last) return;
+  const { k, hits, tag, face } = window._last;
+  const firstReason = reasonText(k, hits, tag).split('。')[0] + '。';
+  const text = `【酒縁結び】${callName()}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\nあなたの${callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
+  const b = document.getElementById('copy');
+  const done = ok => {
+    b.textContent = ok ? 'コピーしました' : 'コピーできませんでした';
+    setTimeout(() => { b.textContent = '結果をコピー'; }, 2000);
+  };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    done(ok);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => done(true)).catch(fallback);
+  } else { fallback(); }
+});
+</script>
+</body>
+</html>

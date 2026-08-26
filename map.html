@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>縁の地図 — 酒縁結び</title>
+<meta name="description" content="全国1,600の蔵元を地図で。銘柄・土地・物語のことばで探せる日本酒の縁の地図。">
+<meta property="og:title" content="縁の地図 — 酒縁結び">
+<meta property="og:description" content="全国1,600の蔵元を地図で。銘柄・土地・物語のことばで探せる日本酒の縁の地図。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --paper: #faf6ee;
+    --ink: #2b2b33;
+    --sub: #6d6a60;
+    --accent: #a63d40;
+    --line: #d9d2c2;
+    --card: #fffdf7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body, #map { height: 100%; }
+  body { font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; color: var(--ink); }
+  .panel {
+    position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1000;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    pointer-events: none;
+  }
+  .panel > * { pointer-events: auto; }
+  .title {
+    background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 16px; font-size: 1.05rem; letter-spacing: 0.2em;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .title small { display: block; color: var(--sub); font-size: 0.68rem; letter-spacing: 0.05em; }
+  .back {
+    background: var(--accent); color: #fff; border-radius: 6px; padding: 10px 14px;
+    font-size: 0.85rem; text-decoration: none; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .leaflet-popup-content-wrapper { background: var(--card); border-radius: 6px; font-family: inherit; }
+  .pp { min-width: 200px; }
+  .pp .place { color: var(--sub); font-size: 0.72rem; }
+  .pp .brand { font-size: 1.15rem; font-weight: 600; margin: 2px 0; }
+  .pp .kura { font-size: 0.8rem; }
+  .pp .story { font-size: 0.78rem; color: var(--sub); margin-top: 8px; border-left: 2px solid var(--line); padding-left: 8px; line-height: 1.6; }
+  .pp .links { margin-top: 8px; font-size: 0.78rem; display: flex; gap: 12px; }
+  .pp a { color: var(--accent); }
+  .search {
+    position: absolute; top: 66px; left: 12px; z-index: 1000; width: min(320px, calc(100% - 24px));
+  }
+  .search input {
+    width: 100%; padding: 9px 12px; font-size: 16px; font-family: inherit;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .search input::placeholder { color: #b8b2a4; }
+  .hits {
+    margin-top: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    max-height: 45vh; overflow-y: auto; display: none;
+  }
+  .hit { padding: 9px 12px; font-size: 0.82rem; cursor: pointer; border-bottom: 1px dashed var(--line); }
+  .hit:last-child { border-bottom: none; }
+  .hit:hover { background: #fdf3f0; }
+  .hit .h-brand { font-weight: 600; }
+  .hit .h-sub { color: var(--sub); font-size: 0.72rem; }
+  .count {
+    position: absolute; bottom: 12px; left: 12px; z-index: 1000;
+    background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    padding: 4px 12px; font-size: 0.7rem; color: var(--sub);
+  }
+  .layers {
+    position: absolute; right: 12px; bottom: 12px; z-index: 1000;
+    background: var(--card); border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px 12px; font-size: 0.76rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .layers label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+  .layers input { accent-color: var(--accent); }
+  .layers .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel">
+  <div class="title">縁の地図<small>全国の蔵と、物語がここに</small></div>
+  <a class="back" href="index.html">御縁札をつくる →</a>
+</div>
+<div class="search">
+  <input type="search" id="q" placeholder="蔵・銘柄・土地・物語のことば（例：女性杜氏）">
+  <div class="hits" id="hits"></div>
+</div>
+<div class="count" id="count"></div>
+<div class="layers" id="layers"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="map_data.js?v=1787728878"></script>
+<script>
+const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  attribution: '地図タイル: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>',
+  maxZoom: 17,
+}).addTo(map);
+
+function mainBrand(b) {
+  return b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
+}
+
+// レイヤー定義：清酒／みりん／焼酎・泡盛／その他（＝その他+要確認）の4群。データ側のLをUI群へ寄せる
+const LAYERS = [
+  { id: 'sake',   name: '清酒',      color: '#a63d40' },
+  { id: 'mirin',  name: 'みりん',    color: '#b8860b' },
+  { id: 'shochu', name: '焼酎/泡盛', color: '#4a5d8a' },
+  { id: 'other',  name: 'その他',    color: '#9a9a90' },
+];
+// 引数名にLを使うとLeafletのLを隠すため v とする（unknownはその他へ寄せる）
+const uiLayer = v => (v === 'sake' || v === 'mirin' || v === 'shochu') ? v : 'other';
+const groups = {}, counts = {};
+for (const g of LAYERS) { groups[g.id] = L.layerGroup().addTo(map); counts[g.id] = 0; }
+
+for (const k of KURA_MAP) {
+  const g = LAYERS.find(x => x.id === uiLayer(k.L));
+  counts[g.id]++;
+  const hasStory = !!k.s;
+  // 清酒だけは物語の有無で塗り／白抜きを描き分ける（従来どおり）。他レイヤーは各色の塗り
+  const m = L.circleMarker([k.la, k.lo], {
+    radius: 2.5,
+    color: g.color,
+    weight: 1.5,
+    fillColor: g.id === 'sake' ? (hasStory ? g.color : '#fffdf7') : g.color,
+    fillOpacity: (g.id === 'sake' && !hasStory) ? 0.9 : 0.75,
+  }).addTo(groups[g.id]);
+  k._m = m;
+  k._g = g.id;
+  const links = [];
+  if (k.h) {
+    const url = /^https?:/i.test(k.h) ? k.h : 'https://' + k.h;
+    links.push(`<a href="${url}" target="_blank" rel="noopener">蔵のHP</a>`);
+  }
+  links.push(`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.n + ' ' + k.p + ' ' + k.c)}" target="_blank" rel="noopener">経路をみる</a>`);
+  m.bindPopup(`<div class="pp">
+    <div class="place">${k.p} ${k.c}</div>
+    <div class="brand">${mainBrand(k.b)}</div>
+    <div class="kura">${k.n}</div>
+    ${k.b2 ? `<div class="place" style="margin-top:6px;">銘柄：${k.b.replace(/[（(].*?[)）]/g,'')}・${k.b2}</div>` : ''}
+    ${k.s ? `<div class="story">${k.s}</div>` : ''}
+    <div class="links">${links.join('')}</div>
+  </div>`);
+}
+// レイヤー切り替え（初期は全ON）
+const boxes = {};
+document.getElementById('layers').innerHTML = LAYERS.map(g =>
+  `<label><input type="checkbox" data-id="${g.id}" checked><span class="dot" style="background:${g.color}"></span>${g.name}</label>`
+).join('');
+document.querySelectorAll('#layers input').forEach(b => {
+  boxes[b.dataset.id] = b;
+  b.addEventListener('change', () => {
+    if (b.checked) groups[b.dataset.id].addTo(map); else map.removeLayer(groups[b.dataset.id]);
+    if (typeof runSearch === 'function' && qEl.value.trim()) runSearch();
+  });
+});
+// 検索から飛ぶ先が非表示レイヤーだったら、そのレイヤーを戻してから開く
+function ensureVisible(id) {
+  if (boxes[id] && !boxes[id].checked) { boxes[id].checked = true; groups[id].addTo(map); }
+}
+
+// ズームに応じてピンの大きさを変える（非表示中のピンにも効かせるため全マーカーを保持）
+const markers = KURA_MAP.map(k => k._m);
+function fitRadius() {
+  const z = map.getZoom();
+  const r = z <= 5 ? 2.5 : z <= 7 ? 4 : z <= 9 ? 6 : 8;
+  markers.forEach(m => m.setRadius(r));
+}
+map.on('zoomend', fitRadius);
+fitRadius();
+
+// 検索：蔵名・銘柄・県・市町村・物語本文を横断（ひらがな/カタカナは同一視）
+const ITAIJI = {'髙':'高','邉':'辺','邊':'辺','澤':'沢','濵':'浜','濱':'浜','譽':'誉','樂':'楽','齋':'斉','齊':'斉','嶋':'島','國':'国','眞':'真','壽':'寿','﨑':'崎','頸':'頚','藏':'蔵','傳':'伝','衞':'衛','壺':'壷','𠮷':'吉','溜':'留'};
+const kata = t => t.toLowerCase().replace(/[ぁ-ん]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60)).replace(/[髙邉邊澤濵濱譽樂齋齊嶋國眞壽﨑頸藏傳衞壺𠮷溜]/g, c => ITAIJI[c]);
+const prefFull = p => p === '北海道' ? p : p === '東京' ? '東京都' : p === '大阪' ? '大阪府' : p === '京都' ? '京都府' : p + '県';
+const qEl = document.getElementById('q');
+const hitsEl = document.getElementById('hits');
+function runSearch() {
+  const q = kata(qEl.value.trim());
+  if (q.length < 1) { hitsEl.style.display = 'none'; return; }
+  const matched = KURA_MAP.filter(k => kata(`${k.n} ${k.b} ${k.b2 || ''} ${k.br || ''} ${k.p} ${prefFull(k.p)} ${k.c} ${k.s || ''} ${k.t || ''} ${k.L === 'mirin' ? 'みりん' : k.L === 'shochu' ? '焼酎 泡盛' : ''}`).includes(q));
+  const all = matched.filter(k => boxes[k._g] && boxes[k._g].checked);   // 表示中レイヤーのみ
+  const hidden = matched.length - all.length;
+  const found = all.slice(0, 30);
+  let head = all.length ? `<div class="hit"><span class="h-sub">${all.length}者がヒット${all.length > 30 ? '（上位30件を表示。言葉を足すと絞れます）' : ''}</span></div>` : '';
+  if (hidden > 0) head += `<div class="hit"><span class="h-sub">ほかに非表示レイヤーに${hidden}者（左下のチェックをONにすると検索に含まれます）</span></div>`;
+  hitsEl.innerHTML = head + (found.map(k => {
+    const g = LAYERS.find(x => x.id === k._g);
+    const tag = g.id === 'sake' ? '' : `　<span class="h-sub" style="opacity:.7">${g.name}</span>`;
+    return `<div class="hit" data-i="${KURA_MAP.indexOf(k)}"><span class="h-brand">${mainBrand(k.b)}</span>　<span class="h-sub">${k.n}／${k.p} ${k.c}</span>${tag}</div>`;
+  }).join('') || '<div class="hit"><span class="h-sub">見つかりませんでした</span></div>');
+  hitsEl.style.display = 'block';
+}
+qEl.addEventListener('input', runSearch);
+hitsEl.addEventListener('click', e => {
+  const el = e.target.closest('.hit');
+  if (!el || el.dataset.i === undefined) return;
+  const k = KURA_MAP[+el.dataset.i];
+  if (!k) return;
+  hitsEl.style.display = 'none';
+  ensureVisible(k._g);
+  map.flyTo([k.la, k.lo], 11, { duration: 0.8 });
+  setTimeout(() => k._m.openPopup(), 900);
+});
+
+document.getElementById('count').textContent =
+  `全${KURA_MAP.length}者（${LAYERS.map(g => g.name + counts[g.id]).join('・')}）／濃い印は物語つき`
+  + `／蔵元データ: 日本酒造組合中央会 組合員名簿・座標: 国土地理院`;
+</script>
+</body>
+</html>
