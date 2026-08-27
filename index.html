@@ -162,7 +162,7 @@
   </section>
 
   <footer>
-    この縁結びが選ぶのは、全国<span id="kura-count"></span>蔵（全国の清酒蔵1,323のうち、蔵元サイトを確認できたもの）。<br>
+    この縁結びが選ぶのは、全国<span id="kura-count"></span>蔵（名簿で確認できた清酒蔵1,323のうち、蔵名・所在地・代表銘柄がそろっているもの）。<br>
     出典：日本酒造組合中央会「組合員名簿」・各県酒造組合・各蔵公式サイト<br>
     酒縁結びは味の好みを当てるものではありません。縁は、飲んでみる理由。<br>
     <a href="map.html" style="color:var(--accent);">縁の地図（全国の蔵と物語）→</a><br>
@@ -170,7 +170,7 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1787746659"></script>
+<script src="kura_data.js?v=1787790915"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -277,6 +277,7 @@ function match() {
     if (moodHit(k)) { s += 80; hits.push('mood'); }
     if (pref && k.p === pref) { s += 60; hits.push('pref'); }
     if (year && k.y) { s += 10; hits.push('year'); }
+    if (!k.s) { s -= 15; }                    // 薄い札（物語なし）の劣後。ゆらぎ幅の半分＝同じ縁の当たり方の中でだけ効き、代わりがいない場面では出る
     if (s > bestScore) { bestScore = s; best = { k, hits, tag }; }
   }
   return best;
