@@ -93,7 +93,7 @@
 <div class="layers" id="layers"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="map_data.js?v=1787790915"></script>
+<script src="map_data.js?v=1787807326"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
 L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
@@ -134,7 +134,8 @@ for (const k of KURA_MAP) {
   const links = [];
   if (k.h) {
     const url = /^https?:/i.test(k.h) ? k.h : 'https://' + k.h;
-    links.push(`<a href="${url}" target="_blank" rel="noopener">蔵のHP</a>`);
+    // hk='intro' は中央会・県組合・酒販店等の蔵紹介ページ（蔵の自社サイトではない）
+    links.push(`<a href="${url}" target="_blank" rel="noopener">${k.hk === 'intro' ? '蔵の紹介ページ' : '蔵のHP'}</a>`);
   }
   links.push(`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.n + ' ' + k.p + ' ' + k.c)}" target="_blank" rel="noopener">経路をみる</a>`);
   m.bindPopup(`<div class="pp">
