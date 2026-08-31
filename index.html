@@ -68,17 +68,23 @@
     padding: 30px 24px; text-align: center; position: relative;
   }
   .fuda::before {
-    content: attr(data-en); position: absolute;   /* 札の帯＝どの項目の縁か（show()が入れる。既定は御縁） */ top: -12px; left: 50%; transform: translateX(-50%);
+    content: "御縁"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
     background: var(--accent); color: #fff; font-size: 0.75rem;
     padding: 2px 14px; border-radius: 3px; letter-spacing: 0.3em; text-indent: 0.3em;
   }
   .r-place { color: var(--sub); font-size: 0.85rem; margin-bottom: 6px; }
   .r-brand { font-size: 1.9rem; font-weight: 600; letter-spacing: 0.08em; line-height: 1.4; }
   .r-kura { font-size: 0.95rem; margin-top: 4px; }
+  .r-en {
+    margin: 20px 0 0; padding-top: 16px; border-top: 1px dashed var(--line);
+    font-size: 0.72rem; color: var(--accent); letter-spacing: 0.3em; text-indent: 0.3em;
+  }
+  .r-en:empty { display: none; }
   .r-reason {
     margin: 20px 0 4px; padding-top: 18px; border-top: 1px dashed var(--line);
     text-align: left; font-size: 0.98rem;
   }
+  .r-en:not(:empty) + .r-reason { margin-top: 6px; padding-top: 0; border-top: none; }  /* 縁名が空（おまかせ）のときは従来どおり縁文の上に点線 */
   .r-story { color: var(--sub); font-size: 0.88rem; margin-top: 16px; text-align: left; border-left: 2px solid var(--line); padding-left: 10px; }
   .r-dedic { color: var(--accent); font-size: 0.9rem; margin-top: 10px; text-align: left; }
   .r-links { margin-top: 16px; display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
@@ -143,10 +149,11 @@
   <button class="musubu" id="go">縁 を 結 ぶ</button>
 
   <section id="result">
-    <div class="fuda" data-en="御縁">
+    <div class="fuda">
       <p class="r-place" id="r-place"></p>
       <p class="r-brand" id="r-brand"></p>
       <p class="r-kura" id="r-kura"></p>
+      <p class="r-en" id="r-en"></p>
       <div class="r-reason" id="r-reason"></div>
       <p class="r-story" id="r-story"></p>
       <p class="r-dedic" id="r-dedic"></p>
@@ -613,10 +620,10 @@ function show(src) {
   document.getElementById('r-kura').textContent = k.n;
   const axis = topAxis(k, hits, card, lh, m.force);
   window._lastAxis = axis;
-  // 札の帯に「どの項目の縁か」を出す。名前は増やさない＝既存の御縁バッジの文字を変えるだけ
-  document.querySelector('.fuda').dataset.en =
+  // どの項目の縁かを、点線の下に小さく出す（当たった縁が無ければ空＝行ごと消える）
+  document.getElementById('r-en').textContent =
     ({ moji: '名の縁', story: '物語の縁', layer: '物語の縁', mood: '今日の縁',
-       pref: '地の縁', year: '時の縁' })[axis] || '御縁';
+       pref: '地の縁', year: '時の縁' })[axis] || '';
   document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh, axis);
   document.getElementById('r-story').textContent =
     (axis === 'layer' && lh) ? lh.text : (layerText(k, axis, card) || k.s || '');
