@@ -170,7 +170,7 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1788135034"></script>
+<script src="kura_data.js?v=1788143155"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -335,14 +335,22 @@ const LAYER_KEYS = ['o', 't', 'p', 'k', 'i'];
 const TERM_MIN = 2;           // 一字は使わない。「祖父」が「秩父」に、「女将」が「今西将之」に化けたため
 const TERM_MAX = 1;           // 使うのは最も珍しい1語だけ。複数使うと意味のない断片（年続・材・集）が勝つ
 const DF_CAP = 50;            // 51蔵以上に在る語は「よくある話」＝縁にしない
+// 語ではあるが「内容」ではない語＝入力の骨組み側の語。珍しさでは弾けないので名指しで落とす。
+// 「ピアノが得意」→「山廃仕込みを得意とし」、「カメラが趣味」→「趣味は酒に音楽を…」が起きた。
+// **実際に外した実例が出た語だけを足す**（思いつきで増やさない。HP_BLOCKと同じ作法）
+// 「一度」は「一度途絶えた蔵」にも「一度も休造せず」にも当たる＝意味が正反対の札を引く。外す
+const TERM_STOP = new Set(['得意', '趣味', '仕事', '時間', '自分', '大事', '大切', '場所',
+                           '土地', '出身', '先生', '一度', '一番']);
 
 function descTerms(desc) {
-  // 漢字の連なり・カタカナの連なりから1〜4字の候補を切り出す
-  const runs = desc.match(/[\u4E00-\u9FFF]+|[\u30A0-\u30FF]{2,}/g) || [];
   const t = new Set();
-  for (const r of runs)
+  // 漢字：2〜4字の部分列まで見る。複合語が語として立つので切っても意味が残る（材木屋・剣道・女将）
+  for (const r of desc.match(/[\u4E00-\u9FFF]+/g) || [])
     for (let n = Math.min(4, r.length); n >= TERM_MIN; n--)
       for (let i = 0; i + n <= r.length; i++) t.add(r.slice(i, i + n));
+  // カタカナ：**丸ごとだけ**。部分列を作ると「テニス」の「ニス」が「ヴァイオリニスト」に当たる
+  // （2026-08-31 実機で発覚）。外来語は音を共有しすぎて、切った瞬間に語ではなくなる
+  for (const r of desc.match(/[\u30A1-\u30FA\u30FC-\u30FF]{2,}/g) || []) t.add(r);
   return [...t];
 }
 const _tdf = new Map();       // 語 → その語を持つ蔵の数（数えるだけ。事実は増えない）
@@ -357,7 +365,7 @@ function termDF(term) {
 function usableTerms(desc) {
   return descTerms(desc)
     .map(t => ({ t, n: termDF(t) }))
-    .filter(x => x.n > 0 && x.n <= DF_CAP)
+    .filter(x => x.n > 0 && x.n <= DF_CAP && !TERM_STOP.has(x.t))
     .sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length))
     .slice(0, TERM_MAX);
 }
