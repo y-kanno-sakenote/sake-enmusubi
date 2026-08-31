@@ -170,7 +170,7 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1788144409"></script>
+<script src="kura_data.js?v=1788149219"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -351,7 +351,8 @@ const DF_CAP = 50;            // 51蔵以上に在る語は「よくある話」
 // **実際に外した実例が出た語だけを足す**（思いつきで増やさない。HP_BLOCKと同じ作法）
 // 「一度」は「一度途絶えた蔵」にも「一度も休造せず」にも当たる＝意味が正反対の札を引く。外す
 const TERM_STOP = new Set(['得意', '趣味', '仕事', '時間', '自分', '大事', '大切', '場所',
-                           '土地', '出身', '先生', '一度', '一番']);
+                           '土地', '出身', '先生', '一度', '一番', '独立']);
+// 「独立」は本文では「独立独歩」の意味でしか使われていない。脱サラの独立は橋渡し（転業・転身）へ
 
 function descTerms(desc) {
   const t = new Set();
@@ -359,9 +360,10 @@ function descTerms(desc) {
   for (const r of desc.match(/[\u4E00-\u9FFF]+/g) || [])
     for (let n = Math.min(4, r.length); n >= TERM_MIN; n--)
       for (let i = 0; i + n <= r.length; i++) t.add(r.slice(i, i + n));
-  // カタカナ：**丸ごとだけ**。部分列を作ると「テニス」の「ニス」が「ヴァイオリニスト」に当たる
-  // （2026-08-31 実機で発覚）。外来語は音を共有しすぎて、切った瞬間に語ではなくなる
-  for (const r of desc.match(/[\u30A1-\u30FA\u30FC-\u30FF]{2,}/g) || []) t.add(r);
+  // カタカナ：**丸ごと、かつ3字以上だけ**。部分列を作ると「テニス」の「ニス」が
+  // 「ヴァイオリニスト」に当たる。2字だと「脱サラ」の「サラ」が「サラリーマン」に当たった。
+  // 外来語は音を共有しすぎて、切った瞬間に語ではなくなる（2026-08-31 実機で2回とも発覚）
+  for (const r of desc.match(/[\u30A1-\u30FA\u30FC-\u30FF]{3,}/g) || []) t.add(r);
   return [...t];
 }
 const _tdf = new Map();       // 語 → その語を持つ蔵の数（数えるだけ。事実は増えない）
@@ -380,12 +382,30 @@ function usableTerms(desc) {
     .sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length))
     .slice(0, TERM_MAX);
 }
+// 橋渡し：直接の一致が無かったときだけ、入力の言葉から5層に実在する語へ渡す。
+// 表は data/bridge_terms.csv の1枚だけ（BRIDGE はそれをビルド時に実在検証したもの）。
+// 直接一致より1段ゆるい経路なので、**直接が1語でもあるときは絶対に使わない**
+const BRIDGE_MAX = 3;   // 概念で渡すので、最も珍しい1語に絞らず候補を残す（同じ蔵ばかり出さない）
+function bridgeTerms(desc) {
+  const seen = new Set(), out = [];
+  for (const src in BRIDGE) {
+    if (!desc.includes(src)) continue;
+    for (const t of BRIDGE[src]) {
+      if (seen.has(t)) continue;
+      const n = termDF(t);
+      if (n > 0 && n <= DF_CAP) { seen.add(t); out.push({ t, n, bridged: true }); }
+    }
+  }
+  return out.sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length)).slice(0, BRIDGE_MAX);
+}
+
 // その蔵の層に使える語が在るか。最も珍しい一致を返す（無ければ null）
 function layerHit(k, terms) {
   if (!k.L) return null;
   for (const x of terms)
     for (const c of LAYER_KEYS)
-      if (k.L[c] && k.L[c].includes(x.t)) return { term: x.t, n: x.n, text: k.L[c] };
+      if (k.L[c] && k.L[c].includes(x.t))
+        return { term: x.t, n: x.n, text: k.L[c], bridged: !!x.bridged };
   return null;
 }
 function layerText(k, axis, card) {
@@ -449,8 +469,9 @@ function match() {
   const moji = mojiChar();
   const desc = document.getElementById('hito-desc').value.trim();
   const cards = descCards(desc);
-  // 気質札が1枚も立たなかったときだけ、層マッチを受け皿にする（当たっているときは触らない）
-  const terms = (desc && !cards.length) ? usableTerms(desc) : [];
+  // 受け皿は3段。気質札 → 層の直接一致 → 橋渡し。上が当たったら下は動かさない
+  let terms = (desc && !cards.length) ? usableTerms(desc) : [];
+  if (desc && !cards.length && !terms.length) terms = bridgeTerms(desc);
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
   const moodW = mood ? rare(moodN()) : 0;
@@ -519,8 +540,11 @@ function reasonText(k, hits, card, lh) {
       return `「${desc}」——${phrase}が応えました。${ground}`;
     }
     case 'layer':
-      // 解釈しない。同じ言葉が両方に在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる
-      return `「${desc}」——同じ「${lh.term}」が、この蔵の物語にもありました。`;
+      // 解釈しない。言葉が在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる。
+      // 橋渡しで来たときは「同じ」と言わない（入力にその語は無いので、言ったら嘘になる）
+      return lh.bridged
+        ? `「${desc}」——「${lh.term}」の話が、この蔵の物語にありました。`
+        : `「${desc}」——同じ「${lh.term}」が、この蔵の物語にもありました。`;
     case 'mood': {
       const m = MOODS[mood];
       if (m.chars) {
