@@ -131,8 +131,8 @@
   </div>
 
   <div class="q">
-    <p class="q-label">名前から、一字<small>任意</small></p>
-    <input type="text" id="moji" maxlength="4" placeholder="例：桜">
+    <p class="q-label">お名前<small>任意・一字だけ、縁のある字を探します</small></p>
+    <input type="text" id="moji" maxlength="8" placeholder="例：田中鶴子">
   </div>
 
   <div class="q">
@@ -170,7 +170,7 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1788143155"></script>
+<script src="kura_data.js?v=1788144094"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -215,8 +215,23 @@ function moodHit(k) {
 }
 
 // 呼び名（縁文の主語）
+// 名前の中から縁のある一字を1つ選ぶ。「どの字にするか」を利用者に決めさせない。
+// 日本語は姓が先・名が後なので**後ろの字ほど優先**する（珍しさだけで選ぶと姓ばかり勝つ。
+// 石井桜→石、田中鶴子→子 になった。2026-08-31 実測）。
+// 接尾に使う字は最後に回す＝名の実質的な字を採る。実例から作った短い表で、思いつきでは増やさない
+const NAME_SUFFIX = new Set(['子', '郎', '介', '之', '助', '男', '夫', '代']);
 function mojiChar() {
-  return [...document.getElementById('moji').value.trim()][0] || '';
+  const raw = document.getElementById('moji').value.trim();
+  let best = '', bi = -Infinity;
+  [...raw].forEach((c, i) => {
+    if (!/[\u4E00-\u9FFF]/.test(c)) return;      // 銘柄・蔵名は漢字なので、当たり得るのは漢字だけ
+    if (!(CHAR_N.get(c) > 0)) return;             // どの蔵にも無い字は選ばない（縁が立たない）
+    const r = (NAME_SUFFIX.has(c) ? -1000 : 0) + i;
+    if (r > bi) { bi = r; best = c; }
+  });
+  // 当たる漢字が無ければ名縁は立てない。先頭の一字で代用すると「さくら」→「さ」が
+  // 「米のささやき」に、「ヒカル」→「ヒ」が「コシヒカリ」に当たる（テニス→ニスと同型）
+  return best;
 }
 document.getElementById('moji').addEventListener('change', e => {
   e.target.value = [...e.target.value.trim()][0] || '';
