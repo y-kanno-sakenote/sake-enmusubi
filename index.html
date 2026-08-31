@@ -466,7 +466,7 @@ function factForCard(k, card) {
   return best;
 }
 
-function match() {
+function match(force) {
   const pref = sel.value;
   const year = parseInt(document.getElementById('year').value, 10) || null;
   const moji = mojiChar();
@@ -499,14 +499,28 @@ function match() {
   }
   // 御縁のゆらぎ：得点に乱数を混ぜず、最高点からΔ以内を候補プールにして等確率で引く。
   // 縁の強さの順位は保ったまま「もう一度、縁を結ぶ」が効く（v1は加点差にゆらぎが負けて1種類に固定された）
-  let pool = scored.filter(x => x.s >= top - DELTA);
+  // 軸ローテーション（引き直し用）：指定された縁を持つ札だけでプールを作り直す。
+  // その軸の中では従来どおり最高点−Δの等確率＝ゆらぎは保つ。持つ札が無ければ黙って自然な引きに戻る
+  let cand = scored, ctop = top;
+  if (force) {
+    const sub = scored.filter(x => x.hits.includes(force));
+    if (sub.length) { cand = sub; ctop = Math.max(...sub.map(x => x.s)); }
+    else force = null;
+  }
+  let pool = cand.filter(x => x.s >= ctop - DELTA);
   const rich = pool.filter(x => x.k.s || x.k.L);  // 代わりがいる場面では薄い札を出さない
   if (rich.length) pool = rich;
-  return pool[Math.floor(Math.random() * pool.length)];
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  if (!m) return m;
+  // いま立っている縁の一覧（回転の順路）。1つ以下なら回転は自然に無効
+  const axes = ['moji', 'story', 'layer', 'mood', 'pref', 'year']
+    .filter(a => scored.some(x => x.hits.includes(a)));
+  return { ...m, force, axes };
 }
 
 // 主文にする縁を1本だけ選ぶ（最も係数の高い＝最も珍しい縁。同率なら基礎点の高いほう）
-function topAxis(k, hits, card, lh) {
+function topAxis(k, hits, card, lh, force) {
+  if (force && hits.includes(force)) return force;
   const moji = mojiChar();
   const cand = [];
   if (hits.includes('moji')) cand.push({ w: rare(CHAR_N.get(moji) || 1), b: 120, t: 'moji' });
@@ -520,12 +534,12 @@ function topAxis(k, hits, card, lh) {
 }
 
 // 縁文：連結をやめ、**最も珍しい縁1本**とその事実だけを言う（他は言わない＝足さない）
-function reasonText(k, hits, card, lh) {
+function reasonText(k, hits, card, lh, axisIn) {
   const name = callName();
   const moji = mojiChar();
   const year = parseInt(document.getElementById('year').value, 10) || null;
   const desc = document.getElementById('hito-desc').value.trim();
-  const axis = topAxis(k, hits, card, lh);
+  const axis = axisIn || topAxis(k, hits, card, lh);
   if (!axis) return `全国${KURA.length.toLocaleString()}の蔵から、今日の御縁で結ばれた一本です。`;
 
   switch (axis) {
@@ -568,9 +582,20 @@ function reasonText(k, hits, card, lh) {
   }
 }
 
-function show() {
-  const m = match();
+function show(src) {
+  // 軸ローテーション：引き直しは前回と別の縁を主役に引く（入れた項目の数だけ、引き直す理由がある）。
+  // 入力が変わったか「縁を結ぶ」なら自然な引き（最も珍しい縁が主役）に戻る。UIは増やさない
+  const sig = [sel.value, document.getElementById('year').value, document.getElementById('moji').value,
+               document.getElementById('hito-desc').value, mood, who].join('|');
+  let force = null;
+  if (src === 'again' && window._rotSig === sig && window._axes && window._axes.length > 1) {
+    const i = window._axes.indexOf(window._lastAxis);
+    force = window._axes[(i + 1) % window._axes.length];
+  }
+  const m = match(force);
   if (!m) return;
+  window._rotSig = sig;
+  window._axes = m.axes;
   const { k, hits, card, lh } = m;
   const desc = document.getElementById('hito-desc').value.trim();
   document.getElementById('r-place').textContent = `${k.p} ${k.c}`;
@@ -586,8 +611,9 @@ function show() {
   }
   document.getElementById('r-brand').textContent = face;
   document.getElementById('r-kura').textContent = k.n;
-  const axis = topAxis(k, hits, card, lh);
-  document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh);
+  const axis = topAxis(k, hits, card, lh, m.force);
+  window._lastAxis = axis;
+  document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh, axis);
   document.getElementById('r-story').textContent =
     (axis === 'layer' && lh) ? lh.text : (layerText(k, axis, card) || k.s || '');
   // 主文が一言以外の縁になったときは、その言葉をここで受ける（主文は1本だけ・UIは増やさない）
@@ -608,15 +634,15 @@ function show() {
   const r = document.getElementById('result');
   r.style.display = 'block';
   r.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  window._last = { k, hits, card, lh, face };
+  window._last = { k, hits, card, lh, face, axis };
 }
 
-document.getElementById('go').addEventListener('click', show);
-document.getElementById('again').addEventListener('click', show);
+document.getElementById('go').addEventListener('click', () => show('go'));
+document.getElementById('again').addEventListener('click', () => show('again'));
 document.getElementById('copy').addEventListener('click', () => {
   if (!window._last) return;
-  const { k, hits, card, lh, face } = window._last;
-  const firstReason = reasonText(k, hits, card, lh).split('。')[0] + '。';
+  const { k, hits, card, lh, face, axis } = window._last;
+  const firstReason = reasonText(k, hits, card, lh, axis).split('。')[0] + '。';
   const text = `【酒縁結び】${callName()}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\nあなたの${callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
   const b = document.getElementById('copy');
   const done = ok => {
