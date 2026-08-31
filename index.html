@@ -136,8 +136,8 @@
   </div>
 
   <div class="q">
-    <p class="q-label">一言でいうと、どんな人？<small>任意</small></p>
-    <input type="text" id="hito-desc" maxlength="30" placeholder="例：一見クールで、実はあつい">
+    <p class="q-label">その人のことを、一言で<small>任意・人柄でも、身の上でも</small></p>
+    <input type="text" id="hito-desc" maxlength="30" placeholder="例：祖父が船乗りだった">
   </div>
 
   <button class="musubu" id="go">縁 を 結 ぶ</button>
@@ -170,11 +170,14 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1787891023"></script>
+<script src="kura_data.js?v=1788135034"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
-PREFS.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+// 札が1枚も無い県は選択肢に出さない（選べるのに地縁が成立しない＝サイレント失敗を構造的に防ぐ）。
+// 上の PREFS は並び順の定義にすぎず、実際に出る県はプールが決める
+const _prefN = {}; KURA.forEach(k => { _prefN[k.p] = (_prefN[k.p] || 0) + 1; });
+PREFS.filter(p => _prefN[p]).forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
 document.getElementById('kura-count').textContent = KURA.length.toLocaleString();
 
 let who = 'oshi';
@@ -252,16 +255,16 @@ const KISHITSU_WORDS = {
   "立ち直る": ["熱い","あつい","情熱","不屈","あきらめ","諦め","根性","逆境","タフ","折れない","立ち直","泥臭","苦労","這い上が","復活","カムバック","再起","へこたれ","負けない","粘り"],
   "守り続ける": ["古風","渋い","昔かたぎ","王道","伝統","和風","昔ながら","守り","変わらない","品がある","上品","風格","貫禄","古き"],
   "長く続ける": ["こつこつ","コツコツ","一途","地道","堅実","ぶれない","ブレない","継続","忍耐","長く","ずっと","落ち着","大人","ベテラン"],
-  "ひとりで立つ": ["一匹狼","孤高","マイペース","クール","ミステリアス","唯一","オンリーワン","独特","個性","変わり者","異端","ひとり","一人","人見知り","内向","静か","物静か","寡黙","猫","何を考え","無二","自立","気まま"],
+  "ひとりで立つ": ["一匹狼","孤高","マイペース","クール","ミステリアス","唯一","オンリーワン","独特","個性","変わり者","異端","ひとり","一人","人見知り","内向","静か","物静か","寡黙","猫みたい","猫のよう","猫っぽい","何を考え","無二","自立","気まま"],
   "作り変える": ["新しい","挑戦","型破り","自由","攻め","とがっ","尖っ","革新","アイデア","発想","好奇心","行動が早","二刀流","多才","転身","意外","ギャップ","未来","規格外","おもしろ","面白","若い","フレッシュ","伸びしろ","成長","ルーキー","新人","勢い","熱い","あつい","情熱"],
   "迎え入れる": ["面倒見","世話","気配り","聞き上手","包容","人望","誰にでも","ムードメーカー","笑顔","よく笑","明るい","元気","太陽","社交","話しやすい","おおらか","もてなし","人たらし","おせっかい","兄貴肌","姉御肌","優しい","やさしい","あたたかい","温かい","ほっと"],
-  "土からつくる": ["地元","田舎","土","自然","山が好き","米","農","郷土","ふるさと","故郷","育て"],
+  "土からつくる": ["地元","田舎","土いじり","畑仕事","畑を","自然","山が好き","お米","米農家","米づくり","稲作","稲刈り","農家","農業","郷土","ふるさと","故郷","育て"],
   "家でつくる": ["家庭的","家族","あたたかい","温かい","ほっと","癒し","いやし","アットホーム","ほんわか","和む","優しい","やさしい","実家","親孝行","兄弟","姉妹","夫婦","二人三脚","天然","甘えん坊","素直"],
-  "バトンを渡す": ["受け継","跡を継","継い","代目","親の背中","バトン","託","恩返し","伝え","妹思い","兄思い"],
+  "バトンを渡す": ["受け継","跡を継","継い","代目","親の背中","バトン","託す","託さ","託し","恩返し","伝え","妹思い","兄思い"],
   "女性が継ぐ": ["芯がある","芯の","しっかり","筋を通","守り抜","受け継","跡を継","継い","意志"],
   "手を抜かない": ["職人","こだわり","頑固","ストイック","完璧","丁寧","几帳面","きっちり","手を抜か","妥協","凝り性","細かい","繊細","器用","硬派","本格","求道","真剣","慎重","まじめ","真面目","誠実","律儀","実直","約束","責任感","努力","がんば","頑張","ひたむき","一生懸命","汗をかく"],
-  "世に問う": ["すごい","天才","実力","エース","最強","トップ","カリスマ","スター","輝","キラキラ","一番","優勝","憧れ","実績","評価","賞を","かっこい","カッコい","負けず嫌い","熱い","あつい","情熱"],
-  "遠くへ行く": ["世界","グローバル","海外","国際","ワールド","壮大","スケール","豪快","器が大き","旅","越境","広い"]
+  "世に問う": ["すごい","天才","実力","エース","最強","トップ","カリスマ","スター","輝く","輝き","輝い","キラキラ","一番","優勝","憧れ","実績","評価","賞を","かっこい","カッコい","負けず嫌い","熱い","あつい","情熱"],
+  "遠くへ行く": ["世界","グローバル","海外","国際","ワールド","壮大","スケール","豪快","器が大き","旅行","旅好き","旅に出","一人旅","越境","広い"]
 };
 
 // 縁文の言い回し。事実タグごとに「出典に書いてあることの言い換え」だけを置く
@@ -304,6 +307,78 @@ const FACT_PHRASE = {
   "外_海外醸造": "海外でも醸している蔵",
 };
 const CARD_PHRASE = { "守り続ける": "昔からのやり方を守り続けてきた蔵" };  // AND条件の札だけ札名で言う
+
+// 札の下段に出す「物語」の層えらび。5層（o起こり/t転機/p人/kこだわり/i逸話）のうち、
+// **当たった縁に噛み合う層を1つだけ**出す。物語1文（k.s）はこれまで通り退避先として残る。
+// ここは解釈ではなく見せ方の表（どの層を先に読むかの優先順）。事実は1つも増やさない。
+const CARD_LAYER = {   // 気質札で当たったとき（層3の写像とは別。札→どの層が根拠になるか）
+  "立ち直る": ['t'], "作り変える": ['t'], "ひとりで立つ": ['o', 'k'],
+  "迎え入れる": ['i', 'k'], "土からつくる": ['k'], "家でつくる": ['p'],
+  "バトンを渡す": ['p'], "女性が継ぐ": ['p'], "手を抜かない": ['k'],
+  "長く続ける": ['o'], "世に問う": ['i', 'k'], "遠くへ行く": ['i'],
+  "守り続ける": ['k', 'o'],
+};
+const AXIS_LAYER = {   // 気質札以外の縁で当たったとき
+  moji: ['i', 'o'],    // 名の縁 → 銘柄の由来が入りやすい逸話から
+  mood: ['i', 'k'],
+  pref: ['k', 'o'],    // 地の縁 → 水・地元米の話が入りやすいこだわりから
+  year: ['o', 't'],    // 時の縁 → 創業の話
+};
+const LAYER_ORDER = ['i', 'k', 'o', 'p', 't'];   // 上のどれも無いときの読む順
+
+// --- 層マッチ：気質札が空振りしたときだけ動く受け皿 -----------------------------
+// 「一言」の中の語が、5層の文にそのまま在るかを見るだけ。意味は推し量らないし、縁文も書かない。
+// 珍しい語の一致ほど強い、は既存の希少性の考え方をそのまま使う（山437蔵・水487蔵で当てても縁ではない）。
+// 形態素解析器は積まない＝辞書を配らない。代わりに「5層に実在し、かつ珍しい語」だけを残す
+const LAYER_KEYS = ['o', 't', 'p', 'k', 'i'];
+// 実測で決めた2つの縛り（2026-08-31・data/logs/measure_fact_desc.md）。緩めるとこじつけが即座に戻る
+const TERM_MIN = 2;           // 一字は使わない。「祖父」が「秩父」に、「女将」が「今西将之」に化けたため
+const TERM_MAX = 1;           // 使うのは最も珍しい1語だけ。複数使うと意味のない断片（年続・材・集）が勝つ
+const DF_CAP = 50;            // 51蔵以上に在る語は「よくある話」＝縁にしない
+
+function descTerms(desc) {
+  // 漢字の連なり・カタカナの連なりから1〜4字の候補を切り出す
+  const runs = desc.match(/[\u4E00-\u9FFF]+|[\u30A0-\u30FF]{2,}/g) || [];
+  const t = new Set();
+  for (const r of runs)
+    for (let n = Math.min(4, r.length); n >= TERM_MIN; n--)
+      for (let i = 0; i + n <= r.length; i++) t.add(r.slice(i, i + n));
+  return [...t];
+}
+const _tdf = new Map();       // 語 → その語を持つ蔵の数（数えるだけ。事実は増えない）
+function termDF(term) {
+  if (!_tdf.has(term)) {
+    let n = 0;
+    for (const k of KURA) if (k.L && LAYER_KEYS.some(c => k.L[c] && k.L[c].includes(term))) n++;
+    _tdf.set(term, n);
+  }
+  return _tdf.get(term);
+}
+function usableTerms(desc) {
+  return descTerms(desc)
+    .map(t => ({ t, n: termDF(t) }))
+    .filter(x => x.n > 0 && x.n <= DF_CAP)
+    .sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length))
+    .slice(0, TERM_MAX);
+}
+// その蔵の層に使える語が在るか。最も珍しい一致を返す（無ければ null）
+function layerHit(k, terms) {
+  if (!k.L) return null;
+  for (const x of terms)
+    for (const c of LAYER_KEYS)
+      if (k.L[c] && k.L[c].includes(x.t)) return { term: x.t, n: x.n, text: k.L[c] };
+  return null;
+}
+function layerText(k, axis, card) {
+  if (!k.L) return '';
+  const pref = (axis === 'story' && card && CARD_LAYER[card]) ? CARD_LAYER[card] : (AXIS_LAYER[axis] || []);
+  for (const c of pref) if (k.L[c]) return k.L[c];
+  // 気質札は物語1文から導かれた札なので、狙った層が無いときは物語1文がいちばん確かな根拠になる。
+  // 関係のない層でお茶を濁さず、呼び出し側の `|| k.s` に譲る
+  if (axis === 'story' && k.s) return '';
+  for (const c of LAYER_ORDER) if (k.L[c]) return k.L[c];
+  return '';
+}
 
 // 希少性の4段係数（連続式ではなく表。オーナーが読めて実測で個別に動かせる）
 function rare(n) { return n <= 5 ? 1.00 : n <= 50 ? 0.80 : n <= 300 ? 0.55 : 0.30; }
@@ -355,6 +430,8 @@ function match() {
   const moji = mojiChar();
   const desc = document.getElementById('hito-desc').value.trim();
   const cards = descCards(desc);
+  // 気質札が1枚も立たなかったときだけ、層マッチを受け皿にする（当たっているときは触らない）
+  const terms = (desc && !cards.length) ? usableTerms(desc) : [];
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
   const moodW = mood ? rare(moodN()) : 0;
@@ -368,27 +445,30 @@ function match() {
     if (moji && (cleanBrand(k.b + '・' + (k.b2 || '')).includes(moji) || coreName(k.n).includes(moji))) { s += 120 * mojiW; hits.push('moji'); }
     const card = storyCardFor(k, cards);
     if (card) { s += 80 * rare(KT_N[card]); hits.push('story'); }
+    const lh = terms.length ? layerHit(k, terms) : null;
+    if (lh) { s += 80 * rare(lh.n); hits.push('layer'); }
     if (moodHit(k)) { s += 80 * moodW; hits.push('mood'); }
     if (pref && k.p === pref) { s += 60 * prefW; hits.push('pref'); }
     if (year && k.y) { s += 10 * yearW; hits.push('year'); }
-    if (!k.s) { s -= 15; }                    // 薄い札（物語なし）の劣後
-    scored.push({ k, hits, card, s });
+    if (!k.s && !k.L) { s -= 15; }            // 薄い札（物語も5層も無い）の劣後
+    scored.push({ k, hits, card, lh, s });
     if (s > top) top = s;
   }
   // 御縁のゆらぎ：得点に乱数を混ぜず、最高点からΔ以内を候補プールにして等確率で引く。
   // 縁の強さの順位は保ったまま「もう一度、縁を結ぶ」が効く（v1は加点差にゆらぎが負けて1種類に固定された）
   let pool = scored.filter(x => x.s >= top - DELTA);
-  const rich = pool.filter(x => x.k.s);       // 代わりがいる場面では薄い札を出さない
+  const rich = pool.filter(x => x.k.s || x.k.L);  // 代わりがいる場面では薄い札を出さない
   if (rich.length) pool = rich;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // 主文にする縁を1本だけ選ぶ（最も係数の高い＝最も珍しい縁。同率なら基礎点の高いほう）
-function topAxis(k, hits, card) {
+function topAxis(k, hits, card, lh) {
   const moji = mojiChar();
   const cand = [];
   if (hits.includes('moji')) cand.push({ w: rare(CHAR_N.get(moji) || 1), b: 120, t: 'moji' });
   if (hits.includes('story') && card) cand.push({ w: rare(KT_N[card]), b: 80, t: 'story' });
+  if (hits.includes('layer') && lh) cand.push({ w: rare(lh.n), b: 80, t: 'layer' });
   if (hits.includes('mood') && mood) cand.push({ w: rare(moodN()), b: 80, t: 'mood' });
   if (hits.includes('pref')) cand.push({ w: rare(PREF_N[k.p] || 1), b: 60, t: 'pref' });
   if (hits.includes('year') && k.y) cand.push({ w: -1, b: 10, t: 'year' });   // 時縁は他が無いときだけ
@@ -397,12 +477,12 @@ function topAxis(k, hits, card) {
 }
 
 // 縁文：連結をやめ、**最も珍しい縁1本**とその事実だけを言う（他は言わない＝足さない）
-function reasonText(k, hits, card) {
+function reasonText(k, hits, card, lh) {
   const name = callName();
   const moji = mojiChar();
   const year = parseInt(document.getElementById('year').value, 10) || null;
   const desc = document.getElementById('hito-desc').value.trim();
-  const axis = topAxis(k, hits, card);
+  const axis = topAxis(k, hits, card, lh);
   if (!axis) return `全国${KURA.length.toLocaleString()}の蔵から、今日の御縁で結ばれた一本です。`;
 
   switch (axis) {
@@ -416,9 +496,12 @@ function reasonText(k, hits, card) {
       const f = factForCard(k, card);
       const phrase = (f && FACT_PHRASE[f]) || CARD_PHRASE[card] || 'この蔵';
       // 根拠：気質札を立たせた事実を出典の言葉で置く。物語1文がある蔵は下段(.r-story)がその逐語根拠になる
-      const ground = (!k.s && k.yr) ? `創業は${k.yr}。` : '';
+      const ground = (!k.s && !k.L && k.yr) ? `創業は${k.yr}。` : '';
       return `「${desc}」——${phrase}が応えました。${ground}`;
     }
+    case 'layer':
+      // 解釈しない。同じ言葉が両方に在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる
+      return `「${desc}」——同じ「${lh.term}」が、この蔵の物語にもありました。`;
     case 'mood': {
       const m = MOODS[mood];
       if (m.chars) {
@@ -442,12 +525,13 @@ function reasonText(k, hits, card) {
 function show() {
   const m = match();
   if (!m) return;
-  const { k, hits, card } = m;
+  const { k, hits, card, lh } = m;
   const desc = document.getElementById('hito-desc').value.trim();
   document.getElementById('r-place').textContent = `${k.p} ${k.c}`;
   // 縁を持つ銘柄を札の顔にする（名縁・祝い字が副銘柄にヒットした場合の不一致防止）
   let face = mainBrand(k.b);
-  const segs = cleanBrand(k.b).split(/[・／,、]/).map(x => x.trim()).filter(Boolean);
+  // 名縁は副銘柄(b2)にも当たるので、札の顔を探す範囲も縁文と同じ集合にそろえる
+  const segs = cleanBrand(k.b + (k.b2 ? '・' + k.b2 : '')).split(/[・／,、]/).map(x => x.trim()).filter(Boolean);
   const mj = mojiChar();
   if (hits.includes('moji') && mj) face = segs.find(x => x.includes(mj)) || face;
   else if (hits.includes('mood') && mood && MOODS[mood].chars) {
@@ -456,11 +540,13 @@ function show() {
   }
   document.getElementById('r-brand').textContent = face;
   document.getElementById('r-kura').textContent = k.n;
-  document.getElementById('r-reason').textContent = reasonText(k, hits, card);
-  document.getElementById('r-story').textContent = k.s || '';
+  const axis = topAxis(k, hits, card, lh);
+  document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh);
+  document.getElementById('r-story').textContent =
+    (axis === 'layer' && lh) ? lh.text : (layerText(k, axis, card) || k.s || '');
   // 主文が一言以外の縁になったときは、その言葉をここで受ける（主文は1本だけ・UIは増やさない）
   document.getElementById('r-dedic').textContent =
-    (desc && topAxis(k, hits, card) !== 'story') ? `「${desc}」——そんな${callName()}の隣に。` : '';
+    (desc && axis !== 'story' && axis !== 'layer') ? `「${desc}」——そんな${callName()}の隣に。` : '';
   const hp = document.getElementById('r-hp');
   if (k.h) {
     hp.style.display = '';
@@ -476,15 +562,15 @@ function show() {
   const r = document.getElementById('result');
   r.style.display = 'block';
   r.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  window._last = { k, hits, card, face };
+  window._last = { k, hits, card, lh, face };
 }
 
 document.getElementById('go').addEventListener('click', show);
 document.getElementById('again').addEventListener('click', show);
 document.getElementById('copy').addEventListener('click', () => {
   if (!window._last) return;
-  const { k, hits, card, face } = window._last;
-  const firstReason = reasonText(k, hits, card).split('。')[0] + '。';
+  const { k, hits, card, lh, face } = window._last;
+  const firstReason = reasonText(k, hits, card, lh).split('。')[0] + '。';
   const text = `【酒縁結び】${callName()}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\nあなたの${callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
   const b = document.getElementById('copy');
   const done = ok => {
