@@ -170,7 +170,7 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1788152093"></script>
+<script src="kura_data.js?v=1788153388"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -386,7 +386,10 @@ function usableTerms(desc) {
 // 表は data/bridge_terms.csv の1枚だけ（BRIDGE はそれをビルド時に実在検証したもの）。
 // 直接一致より1段ゆるい経路なので、**直接が1語でもあるときは絶対に使わない**
 const BRIDGE_MAX = 3;   // 概念で渡すので、最も珍しい1語に絞らず候補を残す（同じ蔵ばかり出さない）
+// 一字キー（猫・雪など）が複合語の中で誤発火するのを防ぐ。実例確度の高い2語だけ（Fable検証 2026-08-31）
+const BRIDGE_MASK = ['猫背', '雪辱'];
 function bridgeTerms(desc) {
+  for (const m of BRIDGE_MASK) desc = desc.split(m).join('');
   const seen = new Set(), out = [];
   for (const src in BRIDGE) {
     if (!desc.includes(src)) continue;
