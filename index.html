@@ -169,7 +169,7 @@
   </section>
 
   <footer>
-    この縁結びが選ぶのは、全国<span id="kura-count"></span>蔵（名簿で確認できた清酒蔵1,323のうち、蔵名・所在地・代表銘柄がそろっているもの）。<br>
+    <span id="pop-line">この縁結びが選ぶのは、全国<span id="kura-count"></span>蔵（名簿で確認できた清酒蔵1,323のうち、蔵名・所在地・代表銘柄がそろっているもの）。</span><br>
     出典：日本酒造組合中央会「組合員名簿」・各県酒造組合・各蔵公式サイト<br>
     酒縁結びは味の好みを当てるものではありません。縁は、飲んでみる理由。<br>
     <a href="map.html" style="color:var(--accent);">縁の地図（全国の蔵と物語）→</a><br>
@@ -186,6 +186,29 @@ const sel = document.getElementById('pref');
 const _prefN = {}; KURA.forEach(k => { _prefN[k.p] = (_prefN[k.p] || 0) + 1; });
 PREFS.filter(p => _prefN[p]).forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
 document.getElementById('kura-count').textContent = KURA.length.toLocaleString();
+
+// 会モード：?kai=県:蔵名:銘柄,… で母集団をその日の酒だけに絞る（日本酒会・催事用）。
+// 絞るのはプールだけ。採点と希少性は全国基準のまま＝「珍しい一致ほど強い縁」の意味を会場でも変えない。
+// 銘柄まで指定されたら札の顔をそれに固定する（グラスの中身と札を一致させる）。
+// URLは tools/make_kai.py が日本酒リストから作る（存在検証つき）。ここでは見つからない指定は警告して無視
+const KAI = (() => {
+  const q = new URLSearchParams(location.search).get('kai');
+  if (!q) return null;
+  const nn = x => coreName(x).replace(/[\s\u3000]/g, '');
+  const out = [];
+  for (const part of q.split(',')) {
+    const [p, n, b] = part.split(':').map(x => (x || '').trim());
+    const k = p && n && KURA.find(k => k.p === p && nn(k.n) === nn(n));
+    if (k) { k._kai = b || ''; out.push(k); }
+    else console.warn('会モード：見つからない指定 →', part);
+  }
+  return out.length ? out : null;
+})();
+if (KAI) {
+  // 絞っていることを黙らない（サイレント失敗にしない）。人数と出どころをフッターで明示
+  document.getElementById('pop-line').textContent =
+    `この縁結びが選ぶのは、今日の会に並ぶ${KAI.length}蔵。`;
+}
 
 let who = 'oshi';
 document.getElementById('who').addEventListener('click', e => {
@@ -489,7 +512,7 @@ function match(force) {
 
   const scored = [];
   let top = -Infinity;
-  for (const k of KURA) {
+  for (const k of (KAI || KURA)) {
     let s = 0;
     const hits = [];
     if (moji && (cleanBrand(k.b + '・' + (k.b2 || '')).includes(moji) || coreName(k.n).includes(moji))) { s += 120 * mojiW; hits.push('moji'); }
@@ -547,7 +570,9 @@ function reasonText(k, hits, card, lh, axisIn) {
   const year = parseInt(document.getElementById('year').value, 10) || null;
   const desc = document.getElementById('hito-desc').value.trim();
   const axis = axisIn || topAxis(k, hits, card, lh);
-  if (!axis) return `全国${KURA.length.toLocaleString()}の蔵から、今日の御縁で結ばれた一本です。`;
+  if (!axis) return KAI
+    ? `今日の${KAI.length}蔵から、御縁で結ばれた一本です。`
+    : `全国${KURA.length.toLocaleString()}の蔵から、今日の御縁で結ばれた一本です。`;
 
   switch (axis) {
     case 'moji': {
@@ -616,6 +641,7 @@ function show(src) {
     const c = [...MOODS[mood].chars].find(ch => cleanBrand(k.b).includes(ch));
     if (c) face = segs.find(x => x.includes(c)) || face;
   }
+  if (KAI && k._kai) face = k._kai;   // 会モード：札の顔は今日注がれる銘柄
   document.getElementById('r-brand').textContent = face;
   document.getElementById('r-kura').textContent = k.n;
   const axis = topAxis(k, hits, card, lh, m.force);
