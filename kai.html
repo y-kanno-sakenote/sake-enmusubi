@@ -87,25 +87,54 @@ for (const k of KURA) {
   }
 }
 
+const uniqK = a => new Set(a.map(c => c.k.p + '|' + c.k.n)).size;
+
 function matchLine(line) {
   const L = nrm(line).replace(SPEC, '');
+
+  // 0) 行に蔵名が書かれていれば、それを錨にする（銘柄の部分一致より先）。
+  //    「太田酒造」の中の「田酒」が青森・西田酒造店に当たった実例（2026-09-08）。
+  //    ただし蔵名がそのまま他蔵の銘柄でもある場合（男山＝男山(株)）は錨にしない＝従来の保留に落とす
+  let anc = [];
+  for (const k of KURA) {
+    const c = nrm(core(k.n));
+    if (!c || !L.includes(c)) continue;
+    const owners = seg2k.get(c);
+    if (owners && owners.some(o => o.k !== k)) continue;
+    anc.push({ k, c });
+  }
+  if (anc.length) {
+    const maxLen = Math.max(...anc.map(x => x.c.length));
+    anc = anc.filter(x => x.c.length === maxLen);          // 「太田酒造灘工場」は「太田酒造」より長い方を採る
+    if (uniqK(anc) > 1) {
+      const f = anc.filter(x => L.split(x.c).join('').includes(x.k.p));   // 同名別蔵は県名で
+      if (f.length) anc = f;
+      if (uniqK(anc) > 1)
+        return { err: `蔵名「${anc[0].k.n}」が複数の県にあります（${anc.map(x => x.k.p).join('／')}）。行に県名を足してください` };
+    }
+    let { k, c } = anc[0];
+    let rest = L.split(c).join('');
+    // 「兵庫 太田酒造」のように、錨の蔵名を含む長い蔵名（太田酒造灘工場）が別県にあり、行にその県名があればそちら
+    const alt = KURA.find(k2 => k2 !== k && k2.p !== k.p && nrm(core(k2.n)).includes(c) && rest.includes(k2.p));
+    if (alt) { k = alt; c = nrm(core(alt.n)); }
+    rest = rest.split(k.p).join('');
+    // その蔵自身の銘柄が残りに含まれれば、それが顔
+    let own = null;
+    for (const [key, es] of seg2k) {
+      const e = es.find(x => x.k === k);
+      if (e && rest.includes(key) && (!own || key.length > own.key.length)) own = { key, s: e.s };
+    }
+    if (own) return { k, b: own.s };
+    const face = rest.replace(/[（）()「」『』\[\]・／／,、。:：\/\-–—]/g, '');
+    return face ? { k, b: face, own: true } : { k, b: '' };
+  }
+
   let best = null;
   for (const key of seg2k.keys())
     if (L.includes(key) && (!best || key.length > best.length)) best = key;
-  if (!best) {
-    const ks = KURA.filter(k => { const c = nrm(core(k.n)); return c && L.includes(c); });
-    if (ks.length === 1) {
-      // 蔵名だけ分かった（委託醸造・PBなど、蔵のカタログに無い銘柄）。
-      // 行に残った文字をそのまま札の顔にする＝主催者が持ち込む当日の酒名。DBには一切残らずURLの中だけ
-      const k = ks[0];
-      const rest = L.split(nrm(core(k.n))).join('').split(k.p).join('')
-        .replace(/[（）()「」『』\[\]・／／,、。:：\/\-–—]/g, '');
-      return { k, b: rest, own: true };
-    }
-    return { err: ks.length ? '蔵名が複数に一致します（蔵名を正式名で書いてください）' : '銘柄も蔵名も見つかりません' };
-  }
+  if (!best) return { err: '銘柄も蔵名も見つかりません（蔵名は正式名で書いてください）' };
   let cands = seg2k.get(best);
-  const uniq = a => new Set(a.map(c => c.k.p + '|' + c.k.n)).size;
+  const uniq = uniqK;
   if (uniq(cands) > 1) {
     const rest = L.split(best).join('');
     const f = cands.filter(c => (nrm(core(c.k.n)) && rest.includes(nrm(core(c.k.n)))) || rest.includes(c.k.p));
