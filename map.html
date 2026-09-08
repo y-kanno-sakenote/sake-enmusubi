@@ -38,6 +38,12 @@
     background: var(--accent); color: #fff; border-radius: 6px; padding: 10px 14px;
     font-size: 0.85rem; text-decoration: none; box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   }
+  .base {
+    position: absolute; top: 66px; right: 12px; z-index: 1000;
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 12px; font: inherit; font-size: 0.76rem; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .base.on { border-color: var(--accent); color: var(--accent); background: #fdf3f0; }
   .leaflet-popup-content-wrapper { background: var(--card); border-radius: 6px; font-family: inherit; }
   .pp { min-width: 200px; }
   .pp .place { color: var(--sub); font-size: 0.72rem; }
@@ -89,6 +95,7 @@
   <input type="search" id="q" placeholder="蔵・銘柄・土地・物語のことば（例：女性杜氏）">
   <div class="hits" id="hits"></div>
 </div>
+<button class="base" id="base" title="地図の下地を白地図に切り替え">白地図</button>
 <div class="count" id="count"></div>
 <div class="layers" id="layers"></div>
 
@@ -96,10 +103,18 @@
 <script src="map_data.js?v=1787891023"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
-L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-  attribution: '地図タイル: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>',
-  maxZoom: 17,
-}).addTo(map);
+// 下地は2種：淡色地図（既定）と白地図（会場のスクリーン向け・輪郭とピンだけ）。どちらも国土地理院タイル
+const ATTR = '地図タイル: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>';
+const basePale  = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',  { attribution: ATTR, maxZoom: 17 });
+const baseBlank = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/blank/{z}/{x}/{y}.png', { attribution: ATTR, minZoom: 5, maxZoom: 14 }); // 白地図はズーム5〜14のみ配信
+basePale.addTo(map);
+document.getElementById('base').addEventListener('click', e => {
+  const toWhite = !map.hasLayer(baseBlank);
+  if (toWhite) { map.removeLayer(basePale); baseBlank.addTo(map); map.setMinZoom(5); if (map.getZoom() < 5) map.setZoom(5); }
+  else { map.removeLayer(baseBlank); basePale.addTo(map); map.setMinZoom(0); }
+  e.currentTarget.classList.toggle('on', toWhite);
+  e.currentTarget.textContent = toWhite ? '淡色地図' : '白地図';
+});
 
 function mainBrand(b) {
   return b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
