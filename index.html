@@ -213,6 +213,9 @@ if (KAI) {
   // 縁の地図も今日の会の蔵だけに（同じ ?kai= を引き継ぐ）
   const mapA = document.querySelector('a[href="map.html"]');
   if (mapA) { mapA.href = 'map.html' + location.search; mapA.textContent = '縁の地図（今日の会の蔵）→'; }
+  // 一覧面（提供順の日本酒リスト）へも。会モードのときだけ現れる
+  if (mapA) { const li = document.createElement('a'); li.href = 'list.html' + location.search; li.textContent = '今日の日本酒リスト →';
+    li.style.color = 'var(--accent)'; mapA.insertAdjacentElement('afterend', li); mapA.insertAdjacentText('afterend', '　'); }
 }
 
 let who = 'oshi';

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>今日の日本酒 — 酒縁結び</title>
+<style>
+  :root { --paper: #faf6ee; --ink: #2b2b33; --sub: #6d6a60; --accent: #a63d40; --line: #d9d2c2; --card: #fffdf7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif; line-height: 1.75; }
+  main { max-width: 680px; margin: 0 auto; padding: 36px 16px 60px; }
+  h1 { font-size: 1.5rem; letter-spacing: 0.3em; text-indent: 0.3em; text-align: center; margin: 0 0 4px; }
+  .sub { color: var(--sub); font-size: 0.85rem; text-align: center; margin: 0 0 26px; }
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px 16px; margin-bottom: 14px; position: relative; break-inside: avoid; }
+  .no { position: absolute; top: -11px; left: 16px; background: var(--accent); color: #fff; font-size: 0.72rem; padding: 1px 10px; border-radius: 3px; letter-spacing: 0.1em; }
+  .place { color: var(--sub); font-size: 0.78rem; }
+  .brand { font-size: 1.45rem; font-weight: 600; letter-spacing: 0.06em; line-height: 1.4; margin: 2px 0 0; }
+  .kura { font-size: 0.9rem; margin: 0 0 6px; }
+  .rep { color: var(--sub); font-size: 0.78rem; }
+  .story { font-size: 0.86rem; color: var(--sub); border-left: 2px solid var(--line); padding-left: 10px; margin: 10px 0 0; line-height: 1.7; }
+  .story p { margin: 0 0 2px; }
+  .links { margin-top: 10px; font-size: 0.8rem; display: flex; gap: 14px; }
+  .links a { color: var(--accent); }
+  .empty { text-align: center; color: var(--sub); padding: 40px 0; }
+  footer { margin-top: 28px; text-align: center; color: var(--sub); font-size: 0.76rem; line-height: 1.9; }
+  footer a { color: var(--accent); }
+  @media print {
+    body { background: #fff; }
+    main { max-width: none; padding: 0; }
+    .item { border-color: #bbb; box-shadow: none; }
+    .links, footer .nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>今日の日本酒</h1>
+  <p class="sub" id="sub"></p>
+  <div id="items"></div>
+  <footer>
+    <span class="nav"><a id="to-fuda" href="index.html">御縁札をつくる →</a>　<a id="to-map" href="map.html">縁の地図 →</a></span><br>
+    出典：日本酒造組合中央会「組合員名簿」・各蔵公式サイト（物語は各蔵の公式情報から）<br>
+    お酒は20歳になってから。
+  </footer>
+</main>
+
+<script src="kura_data.js"></script>
+<script>
+// 会モードの一覧面。index.html・map.html と同じ ?kai=県:蔵名:銘柄,… を受け、リストに書いた順（＝提供順）に並べる。
+// 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
+const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');
+const mainBrand = b => b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
+const q = new URLSearchParams(location.search).get('kai');
+const items = [];
+if (q) for (const part of q.split(',')) {
+  const [p, n, b] = part.split(':').map(x => (x || '').trim());
+  const k = p && n && KURA.find(k => k.p === p && coreName(k.n) === coreName(n));
+  if (k) items.push({ k, face: b || mainBrand(k.b) });
+  else console.warn('会モード：見つからない指定 →', part);
+}
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const box = document.getElementById('items');
+if (!items.length) {
+  document.getElementById('sub').textContent = '';
+  box.innerHTML = '<p class="empty">この一覧は、会じたくで作ったURLから開きます。</p>';
+} else {
+  document.getElementById('sub').textContent = `${items.length}本（提供順）`;
+  document.getElementById('to-fuda').href = 'index.html' + location.search;
+  document.getElementById('to-map').href = 'map.html' + location.search;
+  box.innerHTML = items.map(({ k, face }, i) => {
+    const L = k.L || {};
+    // 物語は「起こり」＋もう1つ（逸話→こだわり→転機→人の順で最初にあるもの）。5層が無ければ物語1文
+    const lines = [];
+    if (L.o) lines.push(L.o);
+    const more = L.i || L.k || L.t || L.p;
+    if (more) lines.push(more);
+    if (!lines.length && k.s) lines.push(k.s);
+    const rep = face !== mainBrand(k.b) ? `<div class="rep">蔵の代表銘柄：${esc(mainBrand(k.b))}</div>` : '';
+    const links = [];
+    if (k.h) links.push(`<a href="${esc(/^https?:/i.test(k.h) ? k.h : 'https://' + k.h)}" target="_blank" rel="noopener">${k.hk === 'intro' ? '蔵の紹介ページ' : '蔵のホームページ'} →</a>`);
+    links.push(`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coreName(k.n) + ' ' + k.p + ' ' + k.c)}" target="_blank" rel="noopener">地図 →</a>`);
+    return `<section class="item">
+      <span class="no">${i + 1}</span>
+      <div class="place">${esc(k.p)} ${esc(k.c)}${k.yr ? `　創業 ${esc(k.yr)}` : ''}</div>
+      <p class="brand">${esc(face)}</p>
+      <p class="kura">${esc(k.n)}</p>
+      ${rep}
+      ${lines.length ? `<div class="story">${lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>` : ''}
+      <div class="links">${links.join('')}</div>
+    </section>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
