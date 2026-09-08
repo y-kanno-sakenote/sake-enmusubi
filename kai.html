@@ -94,8 +94,15 @@ function matchLine(line) {
     if (L.includes(key) && (!best || key.length > best.length)) best = key;
   if (!best) {
     const ks = KURA.filter(k => { const c = nrm(core(k.n)); return c && L.includes(c); });
-    if (ks.length === 1) return { k: ks[0], b: '' };   // 蔵名だけ分かった：顔は代表銘柄になる
-    return { err: ks.length ? '蔵名が複数に一致します' : '銘柄も蔵名も見つかりません' };
+    if (ks.length === 1) {
+      // 蔵名だけ分かった（委託醸造・PBなど、蔵のカタログに無い銘柄）。
+      // 行に残った文字をそのまま札の顔にする＝主催者が持ち込む当日の酒名。DBには一切残らずURLの中だけ
+      const k = ks[0];
+      const rest = L.split(nrm(core(k.n))).join('').split(k.p).join('')
+        .replace(/[（）()「」『』\[\]・／／,、。:：\/\-–—]/g, '');
+      return { k, b: rest, own: true };
+    }
+    return { err: ks.length ? '蔵名が複数に一致します（蔵名を正式名で書いてください）' : '銘柄も蔵名も見つかりません' };
   }
   let cands = seg2k.get(best);
   const uniq = a => new Set(a.map(c => c.k.p + '|' + c.k.n)).size;
@@ -120,7 +127,8 @@ document.getElementById('make').addEventListener('click', () => {
   const rep = document.getElementById('report');
   rep.innerHTML = '';
   const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; rep.appendChild(d); };
-  for (const o of ok) add('ok', `${o.line} → ${o.k.p}・${o.k.n}` + (o.b ? `（札の顔: ${o.b}）` : '（銘柄が読めないため代表銘柄で表示）'));
+  for (const o of ok) add('ok', `${o.line} → ${o.k.p}・${o.k.n}` +
+    (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄。入力のまま表示します' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）'));
   for (const n of ng) add('ng', `${n.line} → ${n.err}`);
   if (ng.length) add('note', '✗の行はURLに入っていません。行を直して、もう一度押してください。');
   const dupKura = ok.length - new Set(ok.map(o => o.k.p + '|' + o.k.n)).size;
