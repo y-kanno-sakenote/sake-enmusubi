@@ -56,7 +56,7 @@
     <p style="margin:10px 0 0;font-size:0.82rem;"><a id="map-url" target="_blank" rel="noopener" style="color:var(--accent);">この会の蔵だけの地図 →</a>
       <span style="color:var(--sub);font-size:0.78rem;">（会場のスクリーンに）</span></p>
     <p style="margin:4px 0 0;font-size:0.82rem;"><a id="list-url" target="_blank" rel="noopener" style="color:var(--accent);">今日の日本酒リスト →</a>
-      <span style="color:var(--sub);font-size:0.78rem;">（提供順・印刷できます）</span></p>
+      <span style="color:var(--sub);font-size:0.78rem;">（印刷できます）</span></p>
     <div id="qr"></div>
     <p class="note" style="text-align:center;color:var(--sub);font-size:0.8rem;margin:10px 0 0;">
       QRを読むと、上の酒だけから縁を引く画面が開きます。</p>
@@ -94,7 +94,9 @@ for (const k of KURA) {
 const uniqK = a => new Set(a.map(c => c.k.p + '|' + c.k.n)).size;
 
 function matchLine(line) {
-  const L = nrm(line).replace(SPEC, '');
+  // 法人格も落としてから照合する。「太田酒造（株）灘工場」が、(株)を挟むせいで灘工場の蔵名に一致せず
+  // 滋賀の「太田酒造」に錨が落ちた実例（2026-09-08）
+  const L = core(nrm(line).replace(SPEC, ''));
 
   // 0) 行に蔵名が書かれていれば、それを錨にする（銘柄の部分一致より先）。
   //    「太田酒造」の中の「田酒」が青森・西田酒造店に当たった実例（2026-09-08）。
@@ -117,6 +119,7 @@ function matchLine(line) {
         return { err: `蔵名「${anc[0].k.n}」が複数の県にあります（${anc.map(x => x.k.p).join('／')}）。行に県名を足してください` };
     }
     let { k, c } = anc[0];
+    const c0 = c;                               // 最初に錨にした文字列（顔から外すために覚えておく）
     let rest = L.split(c).join('');
     // 「兵庫 太田酒造」のように、錨の蔵名を含む長い蔵名（太田酒造灘工場）が別県にあり、行にその県名があればそちら
     const alt = KURA.find(k2 => k2 !== k && k2.p !== k.p && nrm(core(k2.n)).includes(c) && rest.includes(k2.p));
@@ -128,9 +131,9 @@ function matchLine(line) {
       const e = es.find(x => x.k === k);
       if (e && rest.includes(key) && (!own || key.length > own.key.length)) own = { key, s: e.s };
     }
-    if (own) return { k, b: own.s };
+    if (own) return { k, b: own.s, anc: [c0, c] };
     const face = rest.replace(/[（）()「」『』\[\]・／／,、。:：\/\-–—]/g, '');
-    return face ? { k, b: face, own: true } : { k, b: '' };
+    return face ? { k, b: face, own: true, anc: [c0, c] } : { k, b: '', anc: [c0, c] };
   }
 
   let best = null;
@@ -149,19 +152,32 @@ function matchLine(line) {
   return { k: cands[0].k, b: cands[0].s };
 }
 
+// 札の顔はリストに書いたとおりにする（「剣菱 純米酒」なら札も「剣菱 純米酒」）。蔵名と県名だけ顔から外す。
+// 空になったら（「兵庫 太田酒造」のように蔵名だけの行）蔵のカタログの銘柄に落ちる
+function faceOf(line, k, fallback, anc) {
+  let f = line.normalize('NFKC');
+  // 蔵名は「太田酒造 灘工場」のように途中に空白があっても外す（文字の間に空白を許す正規表現で消す）
+  const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const nm of [k.n.normalize('NFKC'), core(k.n).normalize('NFKC'), ...(anc || []), k.p])
+    if (nm) f = f.replace(new RegExp([...nm].map(esc).join('\\s*'), 'g'), ' ');
+  f = f.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|\((株|有|資|名|同)\)/g, ' ');   // 法人格の書き残しも顔に出さない
+  f = f.replace(/[（）()「」『』\[\]／,、。:：\/\-–—]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^の|の$/g, '').trim();
+  return f || fallback;
+}
+
 let qrObj = null;
 document.getElementById('make').addEventListener('click', () => {
   const lines = document.getElementById('list').value.split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
   const ok = [], ng = [];
   for (const line of lines) {
     const m = matchLine(line);
-    m.err ? ng.push({ line, err: m.err }) : ok.push({ line, ...m });
+    m.err ? ng.push({ line, err: m.err }) : ok.push({ line, ...m, b: faceOf(line, m.k, m.b, m.anc) });
   }
   const rep = document.getElementById('report');
   rep.innerHTML = '';
   const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; rep.appendChild(d); };
   for (const o of ok) add('ok', `${o.line} → ${o.k.p}・${o.k.n}` +
-    (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄。入力のまま表示します' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）'));
+    (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）'));
   for (const n of ng) add('ng', `${n.line} → ${n.err}`);
   if (ng.length) add('note', '✗の行はURLに入っていません。行を直して、もう一度押してください。');
   const dupKura = ok.length - new Set(ok.map(o => o.k.p + '|' + o.k.n)).size;

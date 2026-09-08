@@ -47,7 +47,7 @@
 
 <script src="kura_data.js"></script>
 <script>
-// 会モードの一覧面。index.html・map.html と同じ ?kai=県:蔵名:銘柄,… を受け、リストに書いた順（＝提供順）に並べる。
+// 会モードの一覧面。index.html・map.html と同じ ?kai=県:蔵名:銘柄,… を受け、リストに書いた順に並べる。
 // 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
 const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');
 const mainBrand = b => b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
@@ -66,7 +66,7 @@ if (!items.length) {
   document.getElementById('sub').textContent = '';
   box.innerHTML = '<p class="empty">この一覧は、会じたくで作ったURLから開きます。</p>';
 } else {
-  document.getElementById('sub').textContent = `${items.length}本（提供順）`;
+  document.getElementById('sub').textContent = `${items.length}本`;
   document.getElementById('to-fuda').href = 'index.html' + location.search;
   document.getElementById('to-map').href = 'map.html' + location.search;
   box.innerHTML = items.map(({ k, face }, i) => {
@@ -77,7 +77,9 @@ if (!items.length) {
     const more = L.i || L.k || L.t || L.p;
     if (more) lines.push(more);
     if (!lines.length && k.s) lines.push(k.s);
-    const rep = face !== mainBrand(k.b) ? `<div class="rep">蔵の代表銘柄：${esc(mainBrand(k.b))}</div>` : '';
+    // 顔が蔵のどの銘柄とも重ならないとき（委託醸造・PB）だけ、代表銘柄を添える
+    const segs = (k.b + (k.b2 ? '・' + k.b2 : '')).replace(/[（(].*?[)）]/g, '').split(/[・／,、]/).map(x => x.trim()).filter(x => x.length >= 2);
+    const rep = segs.some(sg => face.includes(sg)) ? '' : `<div class="rep">蔵の代表銘柄：${esc(mainBrand(k.b))}</div>`;
     const links = [];
     if (k.h) links.push(`<a href="${esc(/^https?:/i.test(k.h) ? k.h : 'https://' + k.h)}" target="_blank" rel="noopener">${k.hk === 'intro' ? '蔵の紹介ページ' : '蔵のホームページ'} →</a>`);
     links.push(`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coreName(k.n) + ' ' + k.p + ' ' + k.c)}" target="_blank" rel="noopener">地図 →</a>`);
