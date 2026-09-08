@@ -53,6 +53,8 @@
   <div id="out" hidden>
     <p style="margin:0 0 6px;"><a id="kai-url" target="_blank" rel="noopener"></a></p>
     <button class="ghost" id="copy">URLをコピー</button>
+    <p style="margin:10px 0 0;font-size:0.82rem;"><a id="map-url" target="_blank" rel="noopener" style="color:var(--accent);">この会の蔵だけの地図 →</a>
+      <span style="color:var(--sub);font-size:0.78rem;">（会場のスクリーンに）</span></p>
     <div id="qr"></div>
     <p class="note" style="text-align:center;color:var(--sub);font-size:0.8rem;margin:10px 0 0;">
       QRを読むと、上の酒だけから縁を引く画面が開きます。</p>
@@ -169,6 +171,7 @@ document.getElementById('make').addEventListener('click', () => {
   const url = BASE + '?kai=' + encodeURIComponent(kai).replace(/%3A/gi, ':').replace(/%2C/gi, ',');
   const a = document.getElementById('kai-url');
   a.href = url; a.textContent = url;
+  document.getElementById('map-url').href = url.replace('?kai=', 'map.html?kai=');
   document.getElementById('qr').innerHTML = '';
   qrObj = new QRCode(document.getElementById('qr'), { text: url, width: 208, height: 208, correctLevel: QRCode.CorrectLevel.M });
   out.hidden = false;

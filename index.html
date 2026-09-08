@@ -210,6 +210,9 @@ if (KAI) {
   // 絞っていることを黙らない（サイレント失敗にしない）。人数と出どころをフッターで明示
   document.getElementById('pop-line').textContent =
     `この縁結びが選ぶのは、今日の会に並ぶ${KAI.length}蔵。`;
+  // 縁の地図も今日の会の蔵だけに（同じ ?kai= を引き継ぐ）
+  const mapA = document.querySelector('a[href="map.html"]');
+  if (mapA) { mapA.href = 'map.html' + location.search; mapA.textContent = '縁の地図（今日の会の蔵）→'; }
 }
 
 let who = 'oshi';

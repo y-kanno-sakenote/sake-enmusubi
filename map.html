@@ -114,10 +114,24 @@ const LAYERS = [
 ];
 // 引数名にLを使うとLeafletのLを隠すため v とする（unknownはその他へ寄せる）
 const uiLayer = v => (v === 'sake' || v === 'mirin' || v === 'shochu') ? v : 'other';
+// 会モード：index.html と同じ ?kai=県:蔵名:銘柄,… を受けて、今日の会の蔵だけを描く（QRから地図へ直接来ても成立）
+const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s\u3000]/g, '');
+const KAI = (() => {
+  const q = new URLSearchParams(location.search).get('kai');
+  if (!q) return null;
+  const out = [];
+  for (const part of q.split(',')) {
+    const [pp, n] = part.split(':').map(x => (x || '').trim());
+    const k = pp && n && KURA_MAP.find(k => k.p === pp && core(k.n) === core(n));
+    if (k) out.push(k); else console.warn('会モード：地図に無い指定 →', part);
+  }
+  return out.length ? out : null;
+})();
+const DATA = KAI || KURA_MAP;
 const groups = {}, counts = {};
 for (const g of LAYERS) { groups[g.id] = L.layerGroup().addTo(map); counts[g.id] = 0; }
 
-for (const k of KURA_MAP) {
+for (const k of DATA) {
   const g = LAYERS.find(x => x.id === uiLayer(k.L));
   counts[g.id]++;
   const hasStory = !!k.s;
@@ -165,7 +179,7 @@ function ensureVisible(id) {
 }
 
 // ズームに応じてピンの大きさを変える（非表示中のピンにも効かせるため全マーカーを保持）
-const markers = KURA_MAP.map(k => k._m);
+const markers = DATA.map(k => k._m);
 function fitRadius() {
   const z = map.getZoom();
   const r = z <= 5 ? 2.5 : z <= 7 ? 4 : z <= 9 ? 6 : 8;
@@ -183,7 +197,7 @@ const hitsEl = document.getElementById('hits');
 function runSearch() {
   const q = kata(qEl.value.trim());
   if (q.length < 1) { hitsEl.style.display = 'none'; return; }
-  const matched = KURA_MAP.filter(k => kata(`${k.n} ${k.b} ${k.b2 || ''} ${k.br || ''} ${k.p} ${prefFull(k.p)} ${k.c} ${k.s || ''} ${k.t || ''} ${k.L === 'mirin' ? 'みりん' : k.L === 'shochu' ? '焼酎 泡盛' : ''}`).includes(q));
+  const matched = DATA.filter(k => kata(`${k.n} ${k.b} ${k.b2 || ''} ${k.br || ''} ${k.p} ${prefFull(k.p)} ${k.c} ${k.s || ''} ${k.t || ''} ${k.L === 'mirin' ? 'みりん' : k.L === 'shochu' ? '焼酎 泡盛' : ''}`).includes(q));
   const all = matched.filter(k => boxes[k._g] && boxes[k._g].checked);   // 表示中レイヤーのみ
   const hidden = matched.length - all.length;
   const found = all.slice(0, 30);
@@ -208,9 +222,19 @@ hitsEl.addEventListener('click', e => {
   setTimeout(() => k._m.openPopup(), 900);
 });
 
-document.getElementById('count').textContent =
-  `名簿の全組合員 ${KURA_MAP.length}者（${LAYERS.map(g => g.name + counts[g.id]).join('・')}）／濃い印は物語つき`
+document.getElementById('count').textContent = KAI
+  ? `今日の会に並ぶ ${KAI.length}蔵／濃い印は物語つき／蔵元データ: 日本酒造組合中央会 組合員名簿・座標: 国土地理院`
+  : `名簿の全組合員 ${KURA_MAP.length}者（${LAYERS.map(g => g.name + counts[g.id]).join('・')}）／濃い印は物語つき`
   + `／蔵元データ: 日本酒造組合中央会 組合員名簿・座標: 国土地理院`;
+if (KAI) {
+  // 会の蔵だけが入る範囲に寄せる。見出しと戻り先も会モードに（絞っていることを黙らない）
+  document.querySelector('.title small').textContent = `今日の会の${KAI.length}蔵`;
+  document.querySelector('.back').href = 'index.html' + location.search;
+  document.getElementById('layers').style.display = 'none';
+  // 描画サイズが確定してから寄せる。サイズ0（非表示タブ・iframe）で読み込まれたら、サイズが付いた時点で寄せ直す
+  const fitKai = () => map.fitBounds(L.latLngBounds(KAI.map(k => [k.la, k.lo])).pad(0.25), { maxZoom: 11 });
+  setTimeout(() => { map.invalidateSize(); if (map.getSize().x > 0) fitKai(); else map.once('resize', fitKai); }, 0);
+}
 </script>
 </body>
 </html>
