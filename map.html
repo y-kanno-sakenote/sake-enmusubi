@@ -198,8 +198,10 @@ const markers = DATA.map(k => k._m);
 function fitRadius() {
   const z = map.getZoom();
   const r = z <= 5 ? 2.5 : z <= 7 ? 4 : z <= 9 ? 6 : 8;
-  markers.forEach(m => m.setRadius(r));
+  // 会モードは数個しか無いので、全国版（1,610個を重ねる前提）の倍以上に。スクリーン投影で見えるように
+  markers.forEach(m => m.setRadius(KAI ? r + 5 : r));
 }
+if (KAI) markers.forEach(m => m.setStyle({ weight: 2.5 }));
 map.on('zoomend', fitRadius);
 fitRadius();
 
