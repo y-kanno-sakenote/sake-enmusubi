@@ -65,7 +65,8 @@
   <footer><a href="index.html">← 酒縁結び（全国版）</a></footer>
 </main>
 
-<script src="kura_data.js?v=1788935950"></script>
+<script src="kai_parse.js"></script>
+<script src="kura_data.js?v=1788936437"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // tools/make_kai.py を廃止してここに一本化（2026-09-07）。照合規則は同一：
@@ -193,8 +194,12 @@ document.getElementById('make').addEventListener('click', () => {
 
   const out = document.getElementById('out');
   if (!ok.length) { out.hidden = true; return; }
-  // URLは短ID形式（?k=）。顔が代表銘柄と同じなら省く＝1蔵5文字まで縮む。空白は _ にして1文字に
-  const kai = ok.map(o => (o.b && o.b !== mainB(o.k.b)) ? `${o.k.id}.${o.b.replace(/[\s　]+/g, '_')}` : o.k.id).join(',');
+  // URLは短ID形式（?k=）。顔はカタログ番号＋スペック辞書で圧縮する（kai_parse.js の kaiFaceEncode）。
+  // 圧縮できない銘柄（委託醸造・PBなど）は生文字列のまま。表示は入力どおりのまま変わらない
+  const kai = ok.map(o => {
+    const c = kaiFaceEncode(o.k, o.b === mainB(o.k.b) ? '' : o.b);
+    return c ? `${o.k.id}.${c}` : o.k.id;
+  }).join(',');
   const url = BASE + '?k=' + encodeURIComponent(kai).replace(/%2C/gi, ',');
   const a = document.getElementById('kai-url');
   a.href = url; a.textContent = url;
