@@ -45,20 +45,15 @@
   </footer>
 </main>
 
-<script src="kura_data.js"></script>
+<script src="kai_parse.js?v=1788935950"></script>
+<script src="kura_data.js?v=1788935950"></script>
 <script>
-// 会モードの一覧面。index.html・map.html と同じ ?kai=県:蔵名:銘柄,… を受け、リストに書いた順に並べる。
+// 会モードの一覧面。index.html・map.html と同じ会モードURL（kai_parse.js が解釈）を受け、リストに書いた順に並べる。
 // 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
-const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');
+const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');   // 地図リンクの検索語に使う
 const mainBrand = b => b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
-const q = new URLSearchParams(location.search).get('kai');
-const items = [];
-if (q) for (const part of q.split(',')) {
-  const [p, n, b] = part.split(':').map(x => (x || '').trim());
-  const k = p && n && KURA.find(k => k.p === p && coreName(k.n) === coreName(n));
-  if (k) items.push({ k, face: b || mainBrand(k.b) });
-  else console.warn('会モード：見つからない指定 →', part);
-}
+const items = parseKai(KURA) || [];
+
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const box = document.getElementById('items');
@@ -95,6 +90,6 @@ if (!items.length) {
   }).join('');
 }
 </script>
-<script src="kai_qr.js"></script>
+<script src="kai_qr.js?v=1788935950"></script>
 </body>
 </html>

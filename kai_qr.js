@@ -1,10 +1,11 @@
 // 会モード共通：QRボタン（index / map / list の3面で共有）
-// ?kai= が付いているときだけ右下に「QR」を出し、押すと参加者用URL（札のページ）のQRを大きく表示する。
+// 会モードのURL（?k= または旧 ?kai=）が付いているときだけ右下に「QR」を出し、押すと参加者用URL（札のページ）のQRを大きく表示する。
 // 会場のどの画面（スクリーンの地図・配布用の一覧）からでも、そのまま読み取ってもらえるようにするため。
 // QR描画ライブラリは押されたときだけ読み込む（全国版や、押さない限りは何も増えない）
 (() => {
   const search = location.search;
-  if (!new URLSearchParams(search).get('kai')) return;
+  const qp = new URLSearchParams(search);
+  if (!qp.get('k') && !qp.get('kai')) return;   // 新形式 ?k= と旧形式 ?kai= の両方で出す
   const url = location.href.replace(/[^/]*(\?.*)?$/, '') + 'index.html' + search;
 
   const css = document.createElement('style');

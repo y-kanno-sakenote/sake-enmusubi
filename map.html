@@ -100,7 +100,8 @@
 <div class="layers" id="layers"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="map_data.js?v=1787891023"></script>
+<script src="kai_parse.js?v=1788935950"></script>
+<script src="map_data.js?v=1788935950"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
 // 下地は2種：淡色地図（既定）と白地図（会場のスクリーン向け・輪郭とピンだけ）。どちらも国土地理院タイル
@@ -129,19 +130,9 @@ const LAYERS = [
 ];
 // 引数名にLを使うとLeafletのLを隠すため v とする（unknownはその他へ寄せる）
 const uiLayer = v => (v === 'sake' || v === 'mirin' || v === 'shochu') ? v : 'other';
-// 会モード：index.html と同じ ?kai=県:蔵名:銘柄,… を受けて、今日の会の蔵だけを描く（QRから地図へ直接来ても成立）
+// 会モード：index.html と同じ会モードURL（kai_parse.js が解釈）を受けて、今日の会の蔵だけを描く
 const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s\u3000]/g, '');
-const KAI = (() => {
-  const q = new URLSearchParams(location.search).get('kai');
-  if (!q) return null;
-  const out = [];
-  for (const part of q.split(',')) {
-    const [pp, n] = part.split(':').map(x => (x || '').trim());
-    const k = pp && n && KURA_MAP.find(k => k.p === pp && core(k.n) === core(n));
-    if (k) out.push(k); else console.warn('会モード：地図に無い指定 →', part);
-  }
-  return out.length ? out : null;
-})();
+const KAI = (() => { const r = parseKai(KURA_MAP); return r ? r.map(x => x.k) : null; })();
 const DATA = KAI || KURA_MAP;
 const groups = {}, counts = {};
 for (const g of LAYERS) { groups[g.id] = L.layerGroup().addTo(map); counts[g.id] = 0; }
@@ -253,6 +244,6 @@ if (KAI) {
   setTimeout(() => { map.invalidateSize(); if (map.getSize().x > 0) fitKai(); else map.once('resize', fitKai); }, 0);
 }
 </script>
-<script src="kai_qr.js"></script>
+<script src="kai_qr.js?v=1788935950"></script>
 </body>
 </html>

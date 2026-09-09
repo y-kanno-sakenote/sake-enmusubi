@@ -179,7 +179,8 @@
   </footer>
 </main>
 
-<script src="kura_data.js?v=1788153388"></script>
+<script src="kai_parse.js?v=1788935950"></script>
+<script src="kura_data.js?v=1788935950"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -192,28 +193,20 @@ document.getElementById('kura-count').textContent = KURA.length.toLocaleString()
 // 会モード：?kai=県:蔵名:銘柄,… で母集団をその日の酒だけに絞る（日本酒会・催事用）。
 // 絞るのはプールだけ。採点と希少性は全国基準のまま＝「珍しい一致ほど強い縁」の意味を会場でも変えない。
 // 銘柄まで指定されたら札の顔をそれに固定する（グラスの中身と札を一致させる）。
-// URLは tools/make_kai.py が日本酒リストから作る（存在検証つき）。ここでは見つからない指定は警告して無視
+// URLは kai.html（会じたく）が日本酒リストから作る。解釈は kai_parse.js に共通化（新旧2形式に対応）
 const KAI = (() => {
-  const q = new URLSearchParams(location.search).get('kai');
-  if (!q) return null;
-  const nn = x => coreName(x).replace(/[\s\u3000]/g, '');
-  const out = [];
-  for (const part of q.split(',')) {
-    const [p, n, b] = part.split(':').map(x => (x || '').trim());
-    const k = p && n && KURA.find(k => k.p === p && nn(k.n) === nn(n));
-    if (k) { k._kai = b || ''; out.push(k); }
-    else console.warn('会モード：見つからない指定 →', part);
-  }
-  return out.length ? out : null;
+  const r = parseKai(KURA);
+  if (!r) return null;
+  return r.map(x => Object.assign(x.k, { _kai: x.face }));
 })();
 if (KAI) {
   // 絞っていることを黙らない（サイレント失敗にしない）。人数と出どころをフッターで明示
   document.getElementById('pop-line').textContent =
     `この縁結びが選ぶのは、今日の会に並ぶ${KAI.length}蔵。`;
-  // 縁の地図も今日の会の蔵だけに（同じ ?kai= を引き継ぐ）
+  // 縁の地図も今日の会の蔵だけに（同じパラメータを引き継ぐ）
   const mapA = document.querySelector('a[href="map.html"]');
   if (mapA) { mapA.href = 'map.html' + location.search; mapA.textContent = '縁の地図（今日の会の蔵）→'; }
-  // 一覧面（提供順の日本酒リスト）へも。会モードのときだけ現れる
+  // 一覧面（今日の日本酒リスト）へも。会モードのときだけ現れる
   if (mapA) { const li = document.createElement('a'); li.href = 'list.html' + location.search; li.textContent = '今日の日本酒リスト →';
     li.style.color = 'var(--accent)'; mapA.insertAdjacentElement('afterend', li); mapA.insertAdjacentText('afterend', '　'); }
 }
@@ -708,6 +701,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js"></script>
+<script src="kai_qr.js?v=1788935950"></script>
 </body>
 </html>
