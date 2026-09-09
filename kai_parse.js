@@ -16,30 +16,50 @@
   const segsOf = k => (k.b + (k.b2 ? '・' + k.b2 : '')).replace(/[（(].*?[)）]/g, '')
     .split(/[・／,、]/).map(x => x.trim()).filter(Boolean);
 
+  // トークン置換：語の位置はそのままで、蔵の銘柄を ~i~ に、スペック語を ^j^ に置き換える。
+  //   実際の会の銘柄は「安芸虎 入河内 純米吟醸」のように固有の語を挟むため、
+  //   「銘柄＋スペック」の形しか縮まない旧方式ではほとんど効かなかった（2026-09-09 実測）
+  const TOKEN = /[~^]\d+[~^]/;
+  const detok = (k, t) => {
+    const ss = segsOf(k);
+    return t.replace(/~(\d+)~/g, (m, i) => ss[+i] !== undefined ? ss[+i] : m)
+            .replace(/\^(\d+)\^/g, (m, j) => SPEC[+j] !== undefined ? SPEC[+j] : m);
+  };
+
   window.kaiFaceDecode = function (k, code) {
     if (!code) return main(k.b);
     if (code[0] === '-') return code.slice(1).replace(/_/g, ' ');
-    if (!CODE.test(code)) return code.replace(/_/g, ' ');
+    const plain = code.replace(/_/g, ' ');
+    if (TOKEN.test(code)) return detok(k, plain);
+    if (!CODE.test(code)) return plain;
     const m = code.match(/^(\d*)(?:s(\d+))?$/);
     const seg = segsOf(k)[m[1] ? +m[1] : 0];
-    if (seg === undefined) return code.replace(/_/g, ' ');
+    if (seg === undefined) return plain;
     return m[2] !== undefined && SPEC[+m[2]] ? `${seg} ${SPEC[+m[2]]}` : seg;
   };
 
   // 顔 → コード。**復元して元の顔に戻らなければ諦めて生文字列**（縮めるために表示を変えない）
   window.kaiFaceEncode = function (k, face) {
-    const raw = () => (CODE.test(face) ? '-' : '') + face.replace(/[\s　]+/g, '_');
+    const raw = () => (CODE.test(face) || TOKEN.test(face) ? '-' : '') + face.replace(/[\s　]+/g, '_');
     if (!face) return '';
     const ss = segsOf(k);
+    // ① 「銘柄」「銘柄＋スペック」にぴたり一致するなら、いちばん短い番号コード
     for (let i = 0; i < ss.length; i++) {
       const cands = [[ss[i], '']].concat(SPEC.map((w, j) => [`${ss[i]} ${w}`, `s${j}`]));
       for (const [text, sp] of cands) {
         if (text !== face) continue;
         const code = (i ? String(i) : '') + sp;
-        return kaiFaceDecode(k, code) === face ? code : raw();   // 念のため往復で検証
+        if (kaiFaceDecode(k, code) === face) return code;
       }
     }
-    return raw();
+    // ② そうでなければ、長い語から順にトークンへ置換（位置はそのまま）
+    let t = face;
+    const subs = ss.map((s, i) => [s, `~${i}~`]).concat(SPEC.map((w, j) => [w, `^${j}^`]))
+      .filter(([w]) => w.length >= 2).sort((a, b) => b[0].length - a[0].length);
+    for (const [w, tk] of subs) if (t.includes(w) && !TOKEN.test(w)) t = t.split(w).join(tk);
+    if (t === face) return raw();                       // 1つも置換できなかった
+    const code = t.replace(/[\s　]+/g, '_');
+    return kaiFaceDecode(k, code) === face ? code : raw();   // 往復で検証してから採用
   };
 
   // list … KURA（札・一覧）でも KURA_MAP（地図）でも使える。戻り値は [{k, face}]、無ければ null
