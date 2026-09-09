@@ -35,6 +35,9 @@
   h1 { font-size: 2rem; letter-spacing: 0.35em; text-indent: 0.35em; font-weight: 600; }
   .tagline { color: var(--sub); font-size: 0.9rem; margin-top: 6px; letter-spacing: 0.1em; }
   .divider { text-align: center; color: var(--accent); margin: 18px 0; letter-spacing: 0.5em; text-indent: 0.5em; font-size: 0.8rem; }
+  /* 会モードの導線（QRで来た人がすぐ地図・一覧へ行けるように。フッターから移設） */
+  .kai-nav { display: none; text-align: center; margin: 14px 0 0; font-size: 0.85rem; }
+  .kai-nav a { color: var(--accent); display: inline-block; margin: 0 10px; }
 
   .q { margin-bottom: 26px; }
   .q-label { font-size: 0.95rem; margin-bottom: 10px; }
@@ -104,6 +107,7 @@
     <h1>酒縁結び</h1>
     <p class="tagline">その人と、縁のある一本。</p>
   </header>
+  <p class="kai-nav" id="kai-nav"><a id="kai-list" href="list.html">今日の日本酒リスト →</a><a id="kai-map" href="map.html">縁の地図 →</a></p>
   <p class="divider">◆　◆　◆</p>
 
   <div class="q">
@@ -179,8 +183,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1788937449"></script>
-<script src="kura_data.js?v=1788937449"></script>
+<script src="kai_parse.js?v=1788938191"></script>
+<script src="kura_data.js?v=1788938191"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -203,12 +207,19 @@ if (KAI) {
   // 絞っていることを黙らない（サイレント失敗にしない）。人数と出どころをフッターで明示
   document.getElementById('pop-line').textContent =
     `この縁結びが選ぶのは、今日の会に並ぶ${KAI.length}蔵。`;
-  // 縁の地図も今日の会の蔵だけに（同じパラメータを引き継ぐ）
-  const mapA = document.querySelector('a[href="map.html"]');
-  if (mapA) { mapA.href = 'map.html' + location.search; mapA.textContent = '縁の地図（今日の会の蔵）→'; }
-  // 一覧面（今日の日本酒リスト）へも。会モードのときだけ現れる
-  if (mapA) { const li = document.createElement('a'); li.href = 'list.html' + location.search; li.textContent = '今日の日本酒リスト →';
-    li.style.color = 'var(--accent)'; mapA.insertAdjacentElement('afterend', li); mapA.insertAdjacentText('afterend', '　'); }
+  // 一覧と地図への導線は見出しの直下に出す（QRで来た人がスクロールせずに行ける）。
+  // フッターの「縁の地図」は全国の地図なので、会モードでは重複を避けて隠す
+  const nav = document.getElementById('kai-nav');
+  nav.style.display = 'block';
+  document.getElementById('kai-list').href = 'list.html' + location.search;
+  document.getElementById('kai-map').href = 'map.html' + location.search;
+  document.getElementById('kai-map').textContent = '縁の地図（今日の会の蔵）→';
+  const footMap = document.querySelector('footer a[href="map.html"]');
+  if (footMap) {
+    const br = footMap.nextElementSibling;      // リンク直後の改行も一緒に消す
+    if (br && br.tagName === 'BR') br.remove();
+    footMap.remove();
+  }
 }
 
 let who = 'oshi';
@@ -701,6 +712,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1788937449"></script>
+<script src="kai_qr.js?v=1788938191"></script>
 </body>
 </html>
