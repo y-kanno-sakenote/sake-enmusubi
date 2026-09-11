@@ -150,6 +150,11 @@
     <input type="text" id="hito-desc" maxlength="30" placeholder="例：祖父が船乗りだった">
   </div>
 
+  <div class="q">
+    <p class="q-label">MBTI<small>任意・分かれば</small></p>
+    <select id="mbti"><option value="">選ばない</option></select>
+  </div>
+
   <button class="musubu" id="go">縁 を 結 ぶ</button>
 
   <section id="result">
@@ -183,8 +188,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1788938191"></script>
-<script src="kura_data.js?v=1788938191"></script>
+<script src="kai_parse.js?v=1789112010"></script>
+<script src="kura_data.js?v=1789112010"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -192,6 +197,9 @@ const sel = document.getElementById('pref');
 // 上の PREFS は並び順の定義にすぎず、実際に出る県はプールが決める
 const _prefN = {}; KURA.forEach(k => { _prefN[k.p] = (_prefN[k.p] || 0) + 1; });
 PREFS.filter(p => _prefN[p]).forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+// MBTIは「縁の軸のひとつ」。蔵と直結させず、気質札（data/mbti_cards.csv）を経由して一言と同じ道を通る
+const mbtiSel = document.getElementById('mbti');
+Object.keys(MBTI).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; mbtiSel.appendChild(o); });
 document.getElementById('kura-count').textContent = KURA.length.toLocaleString();
 
 // 会モード：?kai=県:蔵名:銘柄,… で母集団をその日の酒だけに絞る（日本酒会・催事用）。
@@ -486,10 +494,14 @@ function moodN() {
   return _moodN[mood];
 }
 
-// 一言から気質札の候補を出す（蔵は見ない）
-function descCards(desc) {
+// 一言の「言葉」から気質札の候補を出す（蔵は見ない）
+function wordCards(desc) {
   if (!desc) return [];
   return Object.keys(KISHITSU_WORDS).filter(c => KISHITSU_WORDS[c].some(w => desc.includes(w)));
+}
+// 実際に使う候補＝一言の札＋MBTIの札。MBTIは入力の言い換えにすぎず、そこから先は一言と同じ道を通る
+function descCards(desc) {
+  return [...new Set([...wordCards(desc), ...(MBTI[document.getElementById('mbti').value] || [])])];
 }
 // その蔵が持つ候補のうち、最も珍しい札を採る（珍しい一致ほど強い縁）
 function storyCardFor(k, cards) {
@@ -514,9 +526,12 @@ function match(force) {
   const moji = mojiChar();
   const desc = document.getElementById('hito-desc').value.trim();
   const cards = descCards(desc);
-  // 受け皿は3段。気質札 → 層の直接一致 → 橋渡し。上が当たったら下は動かさない
-  let terms = (desc && !cards.length) ? usableTerms(desc) : [];
-  if (desc && !cards.length && !terms.length) terms = bridgeTerms(desc);
+  // 受け皿は3段。気質札 → 層の直接一致 → 橋渡し。上が当たったら下は動かさない。
+  // 判定に使うのは**一言の言葉から立った札だけ**——MBTIで札が立っただけで層マッチを止めると、
+  // 「剣道を20年続けている」が剣道の蔵に届かなくなる（2026-09-11 実測）
+  const wc = wordCards(desc);
+  let terms = (desc && !wc.length) ? usableTerms(desc) : [];
+  if (desc && !wc.length && !terms.length) terms = bridgeTerms(desc);
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
   const moodW = mood ? rare(moodN()) : 0;
@@ -598,7 +613,9 @@ function reasonText(k, hits, card, lh, axisIn) {
       const phrase = (f && FACT_PHRASE[f]) || CARD_PHRASE[card] || 'この蔵';
       // 根拠：気質札を立たせた事実を出典の言葉で置く。物語1文がある蔵は下段(.r-story)がその逐語根拠になる
       const ground = (!k.s && !k.L && k.yr) ? `創業は${k.yr}。` : '';
-      return `「${desc}」——${phrase}が応えました。${ground}`;
+      // MBTIだけで当たったときは一言が無い。型名は縁の理由にしない（「INFPだから」とは言わない）
+      return desc ? `「${desc}」——${phrase}が応えました。${ground}`
+                  : `${phrase}が、${callName()}に応えました。${ground}`;
     }
     case 'layer':
       // 解釈しない。言葉が在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる。
@@ -630,7 +647,8 @@ function show(src) {
   // 軸ローテーション：引き直しは前回と別の縁を主役に引く（入れた項目の数だけ、引き直す理由がある）。
   // 入力が変わったか「縁を結ぶ」なら自然な引き（最も珍しい縁が主役）に戻る。UIは増やさない
   const sig = [sel.value, document.getElementById('year').value, document.getElementById('moji').value,
-               document.getElementById('hito-desc').value, mood, who].join('|');
+               document.getElementById('hito-desc').value, document.getElementById('mbti').value,
+               mood, who].join('|');
   let force = null;
   if (src === 'again' && window._rotSig === sig && window._axes && window._axes.length > 1) {
     const i = window._axes.indexOf(window._lastAxis);
@@ -712,6 +730,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1788938191"></script>
+<script src="kai_qr.js?v=1789112010"></script>
 </body>
 </html>
