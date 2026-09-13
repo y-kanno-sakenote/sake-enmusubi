@@ -188,8 +188,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789311081"></script>
-<script src="kura_data.js?v=1789311081"></script>
+<script src="kai_parse.js?v=1789312032"></script>
+<script src="kura_data.js?v=1789312032"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -539,6 +539,19 @@ function match(force) {
   const wc = wordCards(desc);
   let terms = (desc && !wc.length) ? usableTerms(desc) : [];
   if (desc && !wc.length && !terms.length) terms = bridgeTerms(desc);
+  // 受け皿の最後：MBTIだけ選ばれていて他が全部空振りなら、そのタイプの語で5層を探す。
+  // 気質札経由(mbti_cards.csv)だけだとF型5タイプが同じ蔵群に集中したので、
+  // タイプごとに別の語を持たせている（data/mbti_terms.csv・重なり100%→2%）
+  // 一言が書かれているときは、そちらが主役。MBTIの語は**一言が無いときだけ**の受け皿にする
+  if (!desc && !terms.length) {
+    const mw = MBTI_TERMS[document.getElementById('mbti').value] || [];
+    const seen = new Set(), out = [];
+    for (const w of mw) {
+      const n = termDF(w);
+      if (n > 0 && n <= DF_CAP && !seen.has(w)) { seen.add(w); out.push({ t: w, n, bridged: true }); }
+    }
+    terms = out.sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length)).slice(0, BRIDGE_MAX);
+  }
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
   const moodW = mood ? rare(moodN()) : 0;
@@ -626,7 +639,9 @@ function reasonText(k, hits, card, lh, axisIn) {
     }
     case 'layer':
       // 解釈しない。言葉が在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる。
-      // 橋渡しで来たときは「同じ」と言わない（入力にその語は無いので、言ったら嘘になる）
+      // 橋渡しで来たときは「同じ」と言わない（入力にその語は無いので、言ったら嘘になる）。
+      // MBTIだけで来たときは一言が無いので、型名も言わずに語だけを置く
+      if (!desc) return `「${lh.term}」の話が、この蔵の物語にありました。`;
       return lh.bridged
         ? `「${desc}」——「${lh.term}」の話が、この蔵の物語にありました。`
         : `「${desc}」——同じ「${lh.term}」が、この蔵の物語にもありました。`;
@@ -737,6 +752,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789311081"></script>
+<script src="kai_qr.js?v=1789312032"></script>
 </body>
 </html>
