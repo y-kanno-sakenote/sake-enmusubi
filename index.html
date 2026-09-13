@@ -188,8 +188,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789312032"></script>
-<script src="kura_data.js?v=1789312032"></script>
+<script src="kai_parse.js?v=1789312562"></script>
+<script src="kura_data.js?v=1789312562"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -698,8 +698,12 @@ function show(src) {
   document.getElementById('r-kura').textContent = k.n;
   const axis = topAxis(k, hits, card, lh, m.force);
   window._lastAxis = axis;
-  // どの項目の縁かを、点線の下に小さく出す（当たった縁が無ければ空＝行ごと消える）
-  document.getElementById('r-en').textContent =
+  // どの項目の縁かを、点線の下に小さく出す（当たった縁が無ければ空＝行ごと消える）。
+  // 一言が空でMBTIだけ選んでいるときは「気の縁」。一言を書いていない人に「物語の縁」と出すのは、
+  // 入れていないもので結ばれたと言うに等しく、おまかせ引きと区別がつかない（ui係の指摘・2026-09-14）。
+  // MBTIとは明言しない＝診断を主役にしない／言えることしか言わない
+  const byMbti = !desc && !!document.getElementById('mbti').value && (axis === 'story' || axis === 'layer');
+  document.getElementById('r-en').textContent = byMbti ? '気の縁' :
     ({ moji: '名の縁', story: '物語の縁', layer: '物語の縁', mood: '今日の縁',
        pref: '地の縁', year: '時の縁' })[axis] || '';
   document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh, axis);
@@ -752,6 +756,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789312032"></script>
+<script src="kai_qr.js?v=1789312562"></script>
 </body>
 </html>
