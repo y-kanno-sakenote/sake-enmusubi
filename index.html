@@ -188,8 +188,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789313059"></script>
-<script src="kura_data.js?v=1789313059"></script>
+<script src="kai_parse.js?v=1789313688"></script>
+<script src="kura_data.js?v=1789313688"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -532,7 +532,7 @@ function match(force) {
   const year = parseInt(document.getElementById('year').value, 10) || null;
   const moji = mojiChar();
   const desc = document.getElementById('hito-desc').value.trim();
-  const cards = descCards(desc);
+  let cards = descCards(desc);
   // 受け皿は3段。気質札 → 層の直接一致 → 橋渡し。上が当たったら下は動かさない。
   // 判定に使うのは**一言の言葉から立った札だけ**——MBTIで札が立っただけで層マッチを止めると、
   // 「剣道を20年続けている」が剣道の蔵に届かなくなる（2026-09-11 実測）
@@ -550,7 +550,14 @@ function match(force) {
       const n = termDF(w);
       if (n > 0 && n <= DF_CAP && !seen.has(w)) { seen.add(w); out.push({ t: w, n, bridged: true }); }
     }
-    terms = out.sort((a, b) => (a.n - b.n) || (b.t.length - a.t.length)).slice(0, BRIDGE_MAX);
+    // 橋渡しと違い**並べ替えも件数制限もしない**。MBTIの語は「入力と一致した語」ではなく
+    // こちらが割り当てた語なので、珍しさで絞る意味がない。むしろDF昇順で3語に絞ると
+    // DF1の語ばかりが選ばれ、ENTJが3蔵に痩せた（2026-09-14 実測）。表に書いた順で全部使う
+    terms = out;
+    // 語が立ったら、MBTI由来の気質札は使わない。両方を効かせると「語と札の両方を持つ蔵」だけが
+    // 最高点になり、プールが11蔵→4蔵に痩せていた（2026-09-14 実測）。
+    // 語のほうがタイプごとに散る＝F型集中を解いた本体なので、語を優先する
+    if (terms.length) cards = [];
   }
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
@@ -756,6 +763,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789313059"></script>
+<script src="kai_qr.js?v=1789313688"></script>
 </body>
 </html>
