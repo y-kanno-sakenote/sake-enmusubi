@@ -40,8 +40,11 @@
   .kai-nav a { color: var(--accent); display: inline-block; margin: 0 10px; }
 
   .q { margin-bottom: 26px; }
-  .q-label { font-size: 0.95rem; margin-bottom: 10px; }
-  .q-label small { color: var(--sub); font-size: 0.78rem; margin-left: 8px; }
+  .q-label { font-size: 0.95rem; margin-bottom: 10px; display: flex; align-items: baseline; gap: 8px; }
+  .q-label small { color: var(--sub); font-size: 0.78rem; }
+  /* 右端に、その欄が何の縁になるかを札と同じ言葉・同じ色で。札の r-en と視線が繋がる */
+  .q-en { margin-left: auto; color: var(--accent); font-size: 0.72rem; letter-spacing: 0.15em; white-space: nowrap; }
+  .lead { color: var(--sub); font-size: 0.8rem; text-align: center; margin: 0 0 20px; }
   .chips { display: flex; gap: 10px; }
   .chip {
     flex: 1; text-align: center; padding: 10px 4px;
@@ -109,6 +112,7 @@
   </header>
   <p class="kai-nav" id="kai-nav"><a id="kai-list" href="list.html">今日の日本酒リスト →</a><a id="kai-map" href="map.html">縁の地図 →</a></p>
   <p class="divider">◆　◆　◆</p>
+  <p class="lead">どれも任意。分かるところだけで結べます。</p>
 
   <div class="q">
     <p class="q-label">この一本は、誰のため？</p>
@@ -120,7 +124,7 @@
   </div>
 
   <div class="q">
-    <p class="q-label">今日はどんな日？<small>任意・もう一度押すと外せます</small></p>
+    <p class="q-label">今日はどんな日？<small>もう一度押すと外せます</small><span class="q-en">今日の縁</span></p>
     <div class="chips" id="mood" style="flex-wrap:wrap;">
       <button class="chip" data-v="iwau" style="flex:1 1 auto; padding:10px 12px;">祝いたい日</button>
       <button class="chip" data-v="ganbatta" style="flex:1 1 auto; padding:10px 12px;">がんばった日</button>
@@ -131,27 +135,27 @@
   </div>
 
   <div class="q">
-    <p class="q-label">ゆかりの土地は？<small>出身地・思い出の場所</small></p>
+    <p class="q-label">ゆかりの土地は？<small>出身地・思い出の場所</small><span class="q-en">地の縁</span></p>
     <select id="pref"><option value="">おまかせ（土地は問わない）</option></select>
   </div>
 
   <div class="q">
-    <p class="q-label">生まれた年<small>任意・西暦</small></p>
+    <p class="q-label">生まれた年<small>西暦</small><span class="q-en">時の縁</span></p>
     <input type="number" inputmode="numeric" id="year" placeholder="1995" min="1900" max="2026">
   </div>
 
   <div class="q">
-    <p class="q-label">お名前<small>任意・一字だけ、縁のある字を探します</small></p>
+    <p class="q-label">お名前<small>一字だけ、縁のある字を探します</small><span class="q-en">名の縁</span></p>
     <input type="text" id="moji" maxlength="8" placeholder="例：田中鶴子">
   </div>
 
   <div class="q">
-    <p class="q-label">その人のことを、一言で<small>任意・人柄でも、身の上でも</small></p>
+    <p class="q-label">その人のことを、一言で<small>人柄も身の上も</small><span class="q-en">物語の縁</span></p>
     <input type="text" id="hito-desc" maxlength="30" placeholder="例：祖父が船乗りだった">
   </div>
 
   <div class="q">
-    <p class="q-label">MBTI<small>任意・分かれば</small></p>
+    <p class="q-label">MBTI<small>分かれば</small></p>
     <select id="mbti"><option value="">選ばない</option></select>
   </div>
 
@@ -188,8 +192,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789313688"></script>
-<script src="kura_data.js?v=1789313688"></script>
+<script src="kai_parse.js?v=1789345298"></script>
+<script src="kura_data.js?v=1789345298"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -763,6 +767,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789313688"></script>
+<script src="kai_qr.js?v=1789345298"></script>
 </body>
 </html>
