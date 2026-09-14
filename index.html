@@ -192,8 +192,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789348480"></script>
-<script src="kura_data.js?v=1789348480"></script>
+<script src="kai_parse.js?v=1789349273"></script>
+<script src="kura_data.js?v=1789349273"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -623,7 +623,7 @@ function topAxis(k, hits, card, lh, force) {
 }
 
 // 縁文：連結をやめ、**最も珍しい縁1本**とその事実だけを言う（他は言わない＝足さない）
-function reasonText(k, hits, card, lh, axisIn) {
+function reasonText(k, hits, card, lh, axisIn, byMbti) {
   const name = callName();
   const moji = mojiChar();
   const year = parseInt(document.getElementById('year').value, 10) || null;
@@ -645,9 +645,11 @@ function reasonText(k, hits, card, lh, axisIn) {
       const phrase = (f && FACT_PHRASE[f]) || CARD_PHRASE[card] || 'この蔵';
       // 根拠：気質札を立たせた事実を出典の言葉で置く。物語1文がある蔵は下段(.r-story)がその逐語根拠になる
       const ground = (!k.s && !k.L && k.yr) ? `創業は${k.yr}。` : '';
-      // MBTIだけで当たったときは一言が無い。型名は縁の理由にしない（「INFPだから」とは言わない）
-      return desc ? `「${desc}」——${phrase}が応えました。${ground}`
-                  : `${phrase}が、${callName()}に応えました。${ground}`;
+      // 一言が無いとき、または**MBTI由来の札で当たったとき**は一言を引用しない。
+      // 引用すると「その一言のせいで当たった」と読めて嘘になる（帯は心の縁なのに縁文は一言、という矛盾）。
+      // 型名は言わない＝「INFPだから」とは書かない、は据え置き
+      return (desc && !byMbti) ? `「${desc}」——${phrase}が応えました。${ground}`
+                               : `${phrase}が、${callName()}に応えました。${ground}`;
     }
     case 'layer':
       // 解釈しない。言葉が在る、とだけ言う。真偽は下段の逐語を読めば読者が判定できる。
@@ -722,15 +724,16 @@ function show(src) {
     (axis === 'layer' && m.usedMbtiTerms) ||                                  // MBTIの語で当たった
     (axis === 'story' && card && !wcSet.has(card) && mbtiCards.includes(card)) // 一言でなくMBTIの札で当たった
   );
+  document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh, axis, byMbti);
   document.getElementById('r-en').textContent = byMbti ? '心の縁' :
     ({ moji: '名の縁', story: '物語の縁', layer: '物語の縁', mood: '今日の縁',
        pref: '地の縁', year: '時の縁' })[axis] || '';
-  document.getElementById('r-reason').textContent = reasonText(k, hits, card, lh, axis);
   document.getElementById('r-story').textContent =
     (axis === 'layer' && lh) ? lh.text : (layerText(k, axis, card) || k.s || '');
   // 主文が一言以外の縁になったときは、その言葉をここで受ける（主文は1本だけ・UIは増やさない）
+  // MBTI由来で当たったときも、一言は縁文から外れるのでここで受ける＝書いた言葉を消さない
   document.getElementById('r-dedic').textContent =
-    (desc && axis !== 'story' && axis !== 'layer') ? `「${desc}」——そんな${callName()}の隣に。` : '';
+    (desc && (byMbti || (axis !== 'story' && axis !== 'layer'))) ? `「${desc}」——そんな${callName()}の隣に。` : '';
   const hp = document.getElementById('r-hp');
   if (k.h) {
     hp.style.display = '';
@@ -747,7 +750,7 @@ function show(src) {
   r.style.display = 'block';
   r.scrollIntoView({ behavior: 'smooth', block: 'start' });
   // usedMbtiTerms も残す：帯が「心の縁」になった根拠を後から確かめられるようにするため
-  window._last = { k, hits, card, lh, face, axis, usedMbtiTerms: m.usedMbtiTerms, wordCards: m.wordCards };
+  window._last = { k, hits, card, lh, face, axis, byMbti, usedMbtiTerms: m.usedMbtiTerms, wordCards: m.wordCards };
 }
 
 document.getElementById('go').addEventListener('click', () => show('go'));
@@ -755,7 +758,7 @@ document.getElementById('again').addEventListener('click', () => show('again'));
 document.getElementById('copy').addEventListener('click', () => {
   if (!window._last) return;
   const { k, hits, card, lh, face, axis } = window._last;
-  const firstReason = reasonText(k, hits, card, lh, axis).split('。')[0] + '。';
+  const firstReason = reasonText(k, hits, card, lh, axis, window._last.byMbti).split('。')[0] + '。';
   const text = `【酒縁結び】${callName()}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\nあなたの${callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
   const b = document.getElementById('copy');
   const done = ok => {
@@ -776,6 +779,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789348480"></script>
+<script src="kai_qr.js?v=1789349273"></script>
 </body>
 </html>
