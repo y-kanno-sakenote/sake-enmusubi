@@ -192,8 +192,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789349273"></script>
-<script src="kura_data.js?v=1789349273"></script>
+<script src="kai_parse.js?v=1789351488"></script>
+<script src="kura_data.js?v=1789351488"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -203,7 +203,10 @@ const _prefN = {}; KURA.forEach(k => { _prefN[k.p] = (_prefN[k.p] || 0) + 1; });
 PREFS.filter(p => _prefN[p]).forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
 // MBTIは「縁の軸のひとつ」。蔵と直結させず、気質札（data/mbti_cards.csv）を経由して一言と同じ道を通る
 const mbtiSel = document.getElementById('mbti');
-Object.keys(MBTI).forEach(t => { const o = document.createElement('option'); o.value = t; o.textContent = t; mbtiSel.appendChild(o); });
+// 選択肢には気質札の言い換え（MBTI_NOTE）を添える。**実際にその蔵を探すのに使っている言葉**だけを出す——
+// 「建築家」等の呼び名は16Personalities（NERIS社）の命名で公式MBTIには無く、当サイトの処理とも無関係（2026-09-14）
+Object.keys(MBTI).forEach(t => { const o = document.createElement('option'); o.value = t;
+  o.textContent = MBTI_NOTE[t] ? `${t} ── ${MBTI_NOTE[t]}` : t; mbtiSel.appendChild(o); });
 document.getElementById('kura-count').textContent = KURA.length.toLocaleString();
 
 // 会モード：?kai=県:蔵名:銘柄,… で母集団をその日の酒だけに絞る（日本酒会・催事用）。
@@ -779,6 +782,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789349273"></script>
+<script src="kai_qr.js?v=1789351488"></script>
 </body>
 </html>
