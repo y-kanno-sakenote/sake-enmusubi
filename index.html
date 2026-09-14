@@ -155,7 +155,7 @@
   </div>
 
   <div class="q">
-    <p class="q-label">MBTI<small>分かれば</small></p>
+    <p class="q-label">MBTI<small>分かれば</small><span class="q-en">心の縁</span></p>
     <select id="mbti"><option value="">選ばない</option></select>
   </div>
 
@@ -192,8 +192,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789345298"></script>
-<script src="kura_data.js?v=1789345298"></script>
+<script src="kai_parse.js?v=1789348480"></script>
+<script src="kura_data.js?v=1789348480"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -547,6 +547,7 @@ function match(force) {
   // 気質札経由(mbti_cards.csv)だけだとF型5タイプが同じ蔵群に集中したので、
   // タイプごとに別の語を持たせている（data/mbti_terms.csv・重なり100%→2%）
   // 一言が書かれているときは、そちらが主役。MBTIの語は**一言が無いときだけ**の受け皿にする
+  let usedMbtiTerms = false;
   if (!desc && !terms.length) {
     const mw = MBTI_TERMS[document.getElementById('mbti').value] || [];
     const seen = new Set(), out = [];
@@ -561,7 +562,7 @@ function match(force) {
     // 語が立ったら、MBTI由来の気質札は使わない。両方を効かせると「語と札の両方を持つ蔵」だけが
     // 最高点になり、プールが11蔵→4蔵に痩せていた（2026-09-14 実測）。
     // 語のほうがタイプごとに散る＝F型集中を解いた本体なので、語を優先する
-    if (terms.length) cards = [];
+    if (terms.length) { cards = []; usedMbtiTerms = true; }
   }
   const mojiW = moji ? rare(CHAR_N.get(moji) || 1) : 0;
   const prefW = pref ? rare(PREF_N[pref] || 1) : 0;
@@ -603,7 +604,7 @@ function match(force) {
   // いま立っている縁の一覧（回転の順路）。1つ以下なら回転は自然に無効
   const axes = ['moji', 'story', 'layer', 'mood', 'pref', 'year']
     .filter(a => scored.some(x => x.hits.includes(a)));
-  return { ...m, force, axes };
+  return { ...m, force, axes, usedMbtiTerms, wordCards: wc };
 }
 
 // 主文にする縁を1本だけ選ぶ（最も係数の高い＝最も珍しい縁。同率なら基礎点の高いほう）
@@ -692,6 +693,7 @@ function show(src) {
   window._rotSig = sig;
   window._axes = m.axes;
   const { k, hits, card, lh } = m;
+  const mbtiType = document.getElementById('mbti').value;
   const desc = document.getElementById('hito-desc').value.trim();
   document.getElementById('r-place').textContent = `${k.p} ${k.c}`;
   // 縁を持つ銘柄を札の顔にする（名縁・祝い字が副銘柄にヒットした場合の不一致防止）
@@ -710,10 +712,16 @@ function show(src) {
   const axis = topAxis(k, hits, card, lh, m.force);
   window._lastAxis = axis;
   // どの項目の縁かを、点線の下に小さく出す（当たった縁が無ければ空＝行ごと消える）。
-  // 一言が空でMBTIだけ選んでいるときは「心の縁」。一言を書いていない人に「物語の縁」と出すのは、
-  // 入れていないもので結ばれたと言うに等しく、おまかせ引きと区別がつかない（ui係の指摘・2026-09-14）。
-  // MBTIとは明言しない＝診断を主役にしない／言えることしか言わない
-  const byMbti = !desc && !!document.getElementById('mbti').value && (axis === 'story' || axis === 'layer');
+  // **主役になった縁が実際にMBTI由来のときだけ**「心の縁」と名乗る（2026-09-14）。
+  // 一言を書いた人にもMBTIの気質札は効いていて、実測では30回中9〜15回はMBTI由来の蔵が出ていた。
+  // 「一言が空のときだけ」という旧条件では、その回を「物語の縁」と偽ることになっていた。
+  // 同じ入力でも引き直すたびに帯が変わるが、それは実際に効いた縁が変わっているため（仕様）
+  const mbtiCards = MBTI[mbtiType] || [];
+  const wcSet = new Set(m.wordCards || []);
+  const byMbti = !!mbtiType && (
+    (axis === 'layer' && m.usedMbtiTerms) ||                                  // MBTIの語で当たった
+    (axis === 'story' && card && !wcSet.has(card) && mbtiCards.includes(card)) // 一言でなくMBTIの札で当たった
+  );
   document.getElementById('r-en').textContent = byMbti ? '心の縁' :
     ({ moji: '名の縁', story: '物語の縁', layer: '物語の縁', mood: '今日の縁',
        pref: '地の縁', year: '時の縁' })[axis] || '';
@@ -738,7 +746,8 @@ function show(src) {
   const r = document.getElementById('result');
   r.style.display = 'block';
   r.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  window._last = { k, hits, card, lh, face, axis };
+  // usedMbtiTerms も残す：帯が「心の縁」になった根拠を後から確かめられるようにするため
+  window._last = { k, hits, card, lh, face, axis, usedMbtiTerms: m.usedMbtiTerms, wordCards: m.wordCards };
 }
 
 document.getElementById('go').addEventListener('click', () => show('go'));
@@ -767,6 +776,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1789345298"></script>
+<script src="kai_qr.js?v=1789348480"></script>
 </body>
 </html>
