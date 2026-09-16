@@ -162,8 +162,21 @@ function faceOf(line, k, fallback, anc) {
   let f = line.normalize('NFKC');
   // 蔵名は「太田酒造 灘工場」のように途中に空白があっても外す（文字の間に空白を許す正規表現で消す）
   const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  for (const nm of [k.n.normalize('NFKC'), core(k.n).normalize('NFKC'), ...(anc || []), k.p])
-    if (nm) f = f.replace(new RegExp([...nm].map(esc).join('\\s*'), 'g'), ' ');
+  // 蔵名を外したあと「酒造」だけが取り残されることがある。登録名が「(株)加越」なのに
+  // 行に「加越酒造」と書かれた場合で、顔が「酒造 加賀ノ月…」になっていた（2026-09-16）。
+  // ①蔵名＋接尾辞（直後にあり独立した語のときだけ）→ ②蔵名そのもの、の順で消す。
+  // 1本にまとめて接尾辞を省略可にすると、「日本盛株式会社 惣花」のように蔵名の直後が
+  // 非空白の行で後読みが外れ、蔵名ごと顔に残る（1,197蔵規模の回帰・qa係が検出）。
+  // 接尾辞は実害の出た酒造系だけ——登録名の末尾は酒造795/酒造店105/酒造場86に対し
+  // 本店40・商店24で、しかも本店・商店は銘柄側の注記にも現れうる（入れても現データでは得が無い）
+  const TAIL = '\\s*(?:酒造場|酒造店|酒造|醸造元)(?=\\s|$)';
+  for (const nm of [k.n.normalize('NFKC'), core(k.n).normalize('NFKC'), ...(anc || [])]) {
+    if (!nm) continue;
+    const base = [...nm].map(esc).join('\\s*');
+    f = f.replace(new RegExp(base + TAIL, 'g'), ' ');
+    f = f.replace(new RegExp(base, 'g'), ' ');
+  }
+  if (k.p) f = f.replace(new RegExp([...k.p].map(esc).join('\\s*'), 'g'), ' ');
   f = f.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|\((株|有|資|名|同)\)/g, ' ');   // 法人格の書き残しも顔に出さない
   f = f.replace(/[（）()「」『』\[\]／,、。:：\/\-–—]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^の|の$/g, '').trim();
   return f || fallback;
