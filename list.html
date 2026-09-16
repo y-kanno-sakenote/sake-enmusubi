@@ -25,11 +25,26 @@
   .empty { text-align: center; color: var(--sub); padding: 40px 0; }
   footer { margin-top: 28px; text-align: center; color: var(--sub); font-size: 0.76rem; line-height: 1.9; }
   footer a { color: var(--accent); }
+  /* 印刷はA4一枚に収める（会場で配る前提）。行間を詰め、物語は1行だけ残す——
+     2行目まで入れると14本で313mmになり2枚に割れるため。物語を全部読むのは札のページの役目。
+     本数が多い会では自然に2枚目へ送る（無理に潰さない）。2026-09-16 実測：14本で226mm／上限273mm・17本まで1枚 */
   @media print {
+    @page { size: A4 portrait; margin: 12mm; }
     body { background: #fff; }
     main { max-width: none; padding: 0; }
-    .item { border-color: #bbb; box-shadow: none; }
+    h1 { font-size: 1.1rem; margin: 0 0 1px; line-height: 1.3; }
+    .sub { margin: 0 0 5px; font-size: 0.7rem; line-height: 1.3; }
+    .item { padding: 3px 8px 3px 26px; margin-bottom: 3px; line-height: 1.35; border-color: #bbb; box-shadow: none; }
+    .no { top: 3px; left: 5px; background: none; color: var(--accent); padding: 0; font-size: 0.78rem; }
+    .place { font-size: 0.64rem; float: right; margin-left: 8px; }
+    .brand { font-size: 0.98rem; line-height: 1.25; display: inline; }
+    .kura { display: inline; font-size: 0.72rem; }
+    .kura::before { content: "　"; }
+    .rep { font-size: 0.64rem; }
+    .story { font-size: 0.66rem; margin: 0; padding-left: 6px; line-height: 1.4; }
+    .story p:nth-child(2) { display: none; }
     .links, footer .nav { display: none; }
+    footer { margin-top: 8px; font-size: 0.62rem; line-height: 1.5; }
   }
 </style>
 </head>
