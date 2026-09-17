@@ -29,7 +29,7 @@
      **えんじ地に白抜きの帯は使わない**——印刷の「背景のグラフィック」は既定でオフで、白紙に白文字になって
      消えるため。見出しも下部も上下の細い罫＋えんじの明朝で作り、色設定に依存しない形にする（2026-09-17）。
      物語は1行だけ残す（2行入れると2枚に割れる）。全文は札のページ（QR）の役目。
-     実測：14本で236mm／上限267mm・15本まで1枚 */
+     実測：14本で269mm／上限277mm・14本でちょうど1枚（QRを40mm取るため余裕は少ない） */
   @media print {
     @page { size: A4 portrait; margin: 10mm; }
     body { background: #fff; border: 0.5pt solid var(--accent); padding: 5mm 6mm 4mm; }
@@ -38,7 +38,7 @@
          text-indent: 0.45em; border-top: 0.5pt solid var(--accent); border-bottom: 0.5pt solid var(--accent); }
     .sub { margin: 1mm 0 3mm; font-size: 0.68rem; line-height: 1.3; }
     .item { border: 0; border-top: 0.5pt solid var(--line); border-radius: 0; background: none;
-            padding: 1.6mm 0 0 7mm; margin-bottom: 3.4mm; line-height: 1.35; box-shadow: none; }
+            padding: 1.6mm 0 0 7mm; margin-bottom: 3mm; line-height: 1.35; box-shadow: none; }
     .no { top: 1.6mm; left: 0; background: none; color: var(--accent); padding: 0; font-size: 0.78rem; }
     .place { font-size: 0.64rem; float: right; margin-left: 8px; }
     .brand { font-size: 0.98rem; line-height: 1.25; display: inline; }
@@ -50,6 +50,12 @@
     .links, footer .nav { display: none; }
     footer { margin-top: 4mm; padding-top: 2mm; border-top: 0.5pt solid var(--accent);
              font-size: 0.62rem; line-height: 1.5; color: var(--accent); }
+    /* 紙のQR：左に置き、文言と出典を右に並べる。縦に積むと30mm丸ごと高さが増えて2枚に割れる */
+    footer { display: flex; align-items: center; justify-content: center; gap: 5mm; text-align: left; }
+    #print-qr { display: block; flex: none; margin: 0; }
+    #print-qr img { display: block; width: 40mm; height: 40mm; image-rendering: pixelated; }
+    #print-qr canvas { display: none; }
+    .qn { display: block; margin: 0 0 1mm; font-size: 0.72rem; color: var(--ink); }
   }
 </style>
 </head>
@@ -59,14 +65,18 @@
   <p class="sub" id="sub"></p>
   <div id="items"></div>
   <footer>
-    <span class="nav"><a id="to-fuda" href="index.html">御縁札をつくる →</a>　<a id="to-map" href="map.html">縁の地図 →</a></span><br>
-    出典：日本酒造組合中央会「組合員名簿」・各蔵公式サイト（物語は各蔵の公式情報から）<br>
-    お酒は20歳になってから。
+    <div id="print-qr" hidden><div class="q"></div></div>
+    <div class="foot-txt">
+      <p class="qn" hidden>スマホで読み取ると、今日のお酒だけで縁を結べます</p>
+      <span class="nav"><a id="to-fuda" href="index.html">御縁札をつくる →</a>　<a id="to-map" href="map.html">縁の地図 →</a></span><br>
+      出典：日本酒造組合中央会「組合員名簿」・各蔵公式サイト（物語は各蔵の公式情報から）<br>
+      お酒は20歳になってから。
+    </div>
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789351488"></script>
-<script src="kura_data.js?v=1789351488"></script>
+<script src="kai_parse.js?v=1789610803"></script>
+<script src="kura_data.js?v=1789610803"></script>
 <script>
 // 会モードの一覧面。index.html・map.html と同じ会モードURL（kai_parse.js が解釈）を受け、リストに書いた順に並べる。
 // 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
@@ -110,6 +120,6 @@ if (!items.length) {
   }).join('');
 }
 </script>
-<script src="kai_qr.js?v=1789351488"></script>
+<script src="kai_qr.js?v=1789610803"></script>
 </body>
 </html>

@@ -42,12 +42,27 @@
     new QRCode(veil.querySelector('.q'), { text: url, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
     veil.addEventListener('click', () => { veil.remove(); veil = null; });
   };
-  btn.addEventListener('click', () => {
-    if (veil) return;
-    if (window.QRCode) return show();
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s.onload = show;
-    document.head.appendChild(s);
-  });
+  // 描画ライブラリの読み込みは一度だけ。押されたとき（ボタン）と、紙に載せるとき（一覧）で共有する
+  let loading = null;
+  const withQR = cb => {
+    if (window.QRCode) return cb();
+    if (!loading) {
+      loading = [];
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+      s.onload = () => { const q = loading; loading = []; q.forEach(f => f()); };
+      document.head.appendChild(s);
+    }
+    loading.push(cb);
+  };
+  btn.addEventListener('click', () => { if (!veil) withQR(show); });
+
+  // 一覧（list.html）だけが持つ印刷用のQR。**印刷時にJSは走らない**ので、開いた時点で描いておく。
+  // 画面では hidden のままで、紙にだけ出る（配布した紙から札のページへ入れるように）
+  const pbox = document.getElementById('print-qr');
+  if (pbox) withQR(() => new QRCode(pbox.querySelector('.q'),
+    // 会モードURLは800字を超えるのでモジュールが細かい（112×112）。紙で40mm角に置くと
+    // 1モジュール0.36mmで、スマホで読める下限（0.3mm）を確保できる。解像度はモジュールが
+    // 端数にならないよう大きめに取る
+    { text: url, width: 560, height: 560, correctLevel: QRCode.CorrectLevel.M }));
 })();
