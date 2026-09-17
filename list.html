@@ -25,17 +25,21 @@
   .empty { text-align: center; color: var(--sub); padding: 40px 0; }
   footer { margin-top: 28px; text-align: center; color: var(--sub); font-size: 0.76rem; line-height: 1.9; }
   footer a { color: var(--accent); }
-  /* 印刷はA4一枚に収める（会場で配る前提）。行間を詰め、物語は1行だけ残す——
-     2行目まで入れると14本で313mmになり2枚に割れるため。物語を全部読むのは札のページの役目。
-     本数が多い会では自然に2枚目へ送る（無理に潰さない）。2026-09-16 実測：14本で226mm／上限273mm・17本まで1枚 */
+  /* 印刷はA4一枚に収める（会場で配る前提）。同じ会のチラシに合わせ、枠で囲う代わりに罫と余白で仕切る。
+     **えんじ地に白抜きの帯は使わない**——印刷の「背景のグラフィック」は既定でオフで、白紙に白文字になって
+     消えるため。見出しも下部も上下の細い罫＋えんじの明朝で作り、色設定に依存しない形にする（2026-09-17）。
+     物語は1行だけ残す（2行入れると2枚に割れる）。全文は札のページ（QR）の役目。
+     実測：14本で236mm／上限267mm・15本まで1枚 */
   @media print {
-    @page { size: A4 portrait; margin: 12mm; }
-    body { background: #fff; }
+    @page { size: A4 portrait; margin: 10mm; }
+    body { background: #fff; border: 0.5pt solid var(--accent); padding: 5mm 6mm 4mm; }
     main { max-width: none; padding: 0; }
-    h1 { font-size: 1.1rem; margin: 0 0 1px; line-height: 1.3; }
-    .sub { margin: 0 0 5px; font-size: 0.7rem; line-height: 1.3; }
-    .item { padding: 3px 8px 3px 26px; margin-bottom: 3px; line-height: 1.35; border-color: #bbb; box-shadow: none; }
-    .no { top: 3px; left: 5px; background: none; color: var(--accent); padding: 0; font-size: 0.78rem; }
+    h1 { font-size: 1.05rem; margin: 0; padding: 1.5mm 0; line-height: 1.3; letter-spacing: 0.45em;
+         text-indent: 0.45em; border-top: 0.5pt solid var(--accent); border-bottom: 0.5pt solid var(--accent); }
+    .sub { margin: 1mm 0 3mm; font-size: 0.68rem; line-height: 1.3; }
+    .item { border: 0; border-top: 0.5pt solid var(--line); border-radius: 0; background: none;
+            padding: 1.6mm 0 0 7mm; margin-bottom: 3.4mm; line-height: 1.35; box-shadow: none; }
+    .no { top: 1.6mm; left: 0; background: none; color: var(--accent); padding: 0; font-size: 0.78rem; }
     .place { font-size: 0.64rem; float: right; margin-left: 8px; }
     .brand { font-size: 0.98rem; line-height: 1.25; display: inline; }
     .kura { display: inline; font-size: 0.72rem; }
@@ -44,7 +48,8 @@
     .story { font-size: 0.66rem; margin: 0; padding-left: 6px; line-height: 1.4; }
     .story p:nth-child(2) { display: none; }
     .links, footer .nav { display: none; }
-    footer { margin-top: 8px; font-size: 0.62rem; line-height: 1.5; }
+    footer { margin-top: 4mm; padding-top: 2mm; border-top: 0.5pt solid var(--accent);
+             font-size: 0.62rem; line-height: 1.5; color: var(--accent); }
   }
 </style>
 </head>
