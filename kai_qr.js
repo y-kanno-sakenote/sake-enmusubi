@@ -37,7 +37,7 @@
     veil = document.createElement('div');
     veil.className = 'kai-qr-veil';
     veil.innerHTML = `<div class="kai-qr-card"><p class="t">今日の御縁札</p><div class="q"></div>
-      <p class="s">読み取ると、今日のお酒だけで縁を結べます</p><p class="c">画面をタップで閉じる</p></div>`;
+      <p class="s">スマホで読み取ると、今日のお酒でおみくじができます。</p><p class="c">画面をタップで閉じる</p></div>`;
     document.body.appendChild(veil);
     new QRCode(veil.querySelector('.q'), { text: url, width: 300, height: 300, correctLevel: QRCode.CorrectLevel.M });
     veil.addEventListener('click', () => { veil.remove(); veil = null; });
