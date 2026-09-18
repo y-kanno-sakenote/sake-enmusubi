@@ -62,18 +62,53 @@
     return kaiFaceDecode(k, code) === face ? code : raw();   // 往復で検証してから採用
   };
 
-  // list … KURA（札・一覧）でも KURA_MAP（地図）でも使える。戻り値は [{k, face}]、無ければ null
+  // 味わいコメント（主催者が付ける一言）。**紙の一覧にだけ出す**ので、判定には一切使わない。
+  // 日本語はURLで1文字9文字分に膨らむため、よく使う味の語を番号に置き換えて縮める
+  // （銘柄の短縮と同じトークン方式・記号だけ変える）。辞書に無い言葉は生のまま残す。
+  // ★並び順を変えるとURLの意味が変わるので、この配列は末尾にしか足さない
+  const TASTE = ['甘味', '旨味', '酸味', '苦味', '渋み', 'コク', 'キレ', 'ボディ', 'バランス',
+    '甘口', '辛口', '芳醇', '濃厚', '軽快', '爽やか', '華やか', 'なめらか', 'やわらか', 'まろやか',
+    'ふっくら', 'どっしり', 'スッキリ', 'ジューシー', 'フルーティ', 'シュワシュワ', '甘酸っぱい',
+    '後味', '香り', '米感', 'ベーシック', 'ホロ苦', 'ワイン', 'パイン', '生酛', '熟成'];
+  const TTOK = /\*\d+\*/;
+
+  window.kaiTasteDecode = function (code) {
+    if (!code) return '';
+    if (code[0] === '-') return code.slice(1).replace(/_/g, ' ');
+    return code.replace(/\*(\d+)\*/g, (m, i) => TASTE[+i] !== undefined ? TASTE[+i] : m).replace(/_/g, ' ');
+  };
+
+  // 顔と同じく、**復元して元に戻らなければ諦めて生文字列**（縮めるために表示を変えない）
+  window.kaiTasteEncode = function (text) {
+    const t0 = (text || '').trim();
+    if (!t0) return '';
+    const raw = () => (TTOK.test(t0) ? '-' : '') + t0.replace(/[\s　]+/g, '_');
+    let t = t0;
+    for (const [w, tk] of TASTE.map((w, i) => [w, `*${i}*`]).sort((a, b) => b[0].length - a[0].length))
+      if (t.includes(w)) t = t.split(w).join(tk);
+    const code = t.replace(/[\s　]+/g, '_');
+    return kaiTasteDecode(code) === t0 ? code : raw();
+  };
+
+  // list … KURA（札・一覧）でも KURA_MAP（地図）でも使える。戻り値は [{k, face, taste}]、無ければ null
   window.parseKai = function (list) {
     const q = new URLSearchParams(location.search);
     const out = [];
+    // 味わいは k= と同じ並び。見つからない蔵を捨てても対応がずれないよう、添字で引く。
+    // **q.get('t') は使わない**——%2C まで復号されるので、味わいに書かれた半角カンマが
+    // 区切りに化けて1本ずつずれる（qa係が検出）。生のクエリから取り、割ってから復号する
+    const _traw = (location.search.match(/[?&]t=([^&]*)/) || [])[1] || '';
+    const ts = _traw.split(',').map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
     const nk = q.get('k');
     if (nk) {
+      let _i = -1;
       for (const part of nk.split(',')) {
+        _i++;
         const dot = part.indexOf('.');
         const id = (dot < 0 ? part : part.slice(0, dot)).trim();
         const face = dot < 0 ? '' : part.slice(dot + 1).trim();
         const k = id && list.find(x => x.id === id);
-        if (k) out.push({ k, face: kaiFaceDecode(k, face) });
+        if (k) out.push({ k, face: kaiFaceDecode(k, face), taste: kaiTasteDecode((ts[_i] || '').trim()) });
         else console.warn('会モード：見つからない指定 →', part);
       }
     } else {
@@ -82,7 +117,7 @@
       for (const part of ok.split(',')) {
         const [p, n, b] = part.split(':').map(x => (x || '').trim());
         const k = p && n && list.find(x => x.p === p && coreN(x.n) === coreN(n));
-        if (k) out.push({ k, face: b || main(k.b) });
+        if (k) out.push({ k, face: b || main(k.b), taste: '' });   // 旧形式に味わいは無い
         else console.warn('会モード：見つからない指定 →', part);
       }
     }

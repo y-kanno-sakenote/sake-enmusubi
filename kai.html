@@ -48,7 +48,7 @@
   <h1>会じたく</h1>
   <p class="sub">日本酒会のリストを貼ると、その日の酒だけで縁を結ぶURLとQRができます（主催者用）</p>
 
-  <textarea id="list" placeholder="1行に1本。スペックが混ざっていても大丈夫です。&#10;例：&#10;剣菱 純米酒&#10;満寿泉 大吟醸&#10;奥丹波&#10;&#10;同じ銘柄の蔵が複数あるときは、行に蔵名か県名を足してください（例：北海道の男山）"></textarea>
+  <textarea id="list" placeholder="1行に1本。スペックが混ざっていても大丈夫です。&#10;例：&#10;剣菱 純米酒&#10;満寿泉 大吟醸&#10;奥丹波&#10;&#10;表計算ソフトから範囲をコピーして貼ると、いちばん右の列を味わいコメントとして拾います（紙の一覧にだけ出ます）。&#10;&#10;同じ銘柄の蔵が複数あるときは、行に蔵名か県名を足してください（例：北海道の男山）"></textarea>
   <button id="make">URL を つくる</button>
 
   <div id="report"></div>
@@ -68,7 +68,7 @@
 </main>
 
 <script src="kai_parse.js"></script>
-<script src="kura_data.js?v=1789612181"></script>
+<script src="kura_data.js?v=1789690874"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // tools/make_kai.py を廃止してここに一本化（2026-09-07）。照合規則は同一：
@@ -184,9 +184,18 @@ function faceOf(line, k, fallback, anc) {
 
 let qrObj = null;
 document.getElementById('make').addEventListener('click', () => {
-  const lines = document.getElementById('list').value.split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
+  // スプレッドシートから範囲コピーするとタブ区切りで入る。**最後の列を味わいコメント**として拾い、
+  // 残りを酒の行として扱う。1列だけの貼り付け（従来）はそのまま動く。
+  // 味わいは紙の一覧にだけ出すもので、縁の判定には一切使わない（2026-09-18）
+  const rows = document.getElementById('list').value.split('\n')
+    .map(x => x.replace(/\s+$/, '')).filter(x => x.trim() && !x.trim().startsWith('#'))
+    .map(x => {
+      const cols = x.split('\t').map(c => c.trim()).filter(Boolean);
+      return cols.length >= 2 ? { line: cols.slice(0, -1).join(' '), taste: cols[cols.length - 1] }
+                              : { line: x.trim(), taste: '' };
+    });
   const ok = [], ng = [];
-  for (const line of lines) {
+  for (const { line, taste } of rows) {
     const m = matchLine(line);
     if (m.err) { ng.push({ line, err: m.err }); continue; }
     // 蔵名を顔から外した結果、銘柄まで消えることがある（「一ノ蔵 特別純米」＝蔵名と銘柄が同じ語）。
@@ -195,13 +204,14 @@ document.getElementById('make').addEventListener('click', () => {
     const segs = (m.k.b + (m.k.b2 ? '・' + m.k.b2 : '')).replace(/[（(].*?[)）]/g, '')
       .split(/[・／,、]/).map(x => x.trim()).filter(x => x.length >= 2);
     if (!m.own && face && !segs.some(sg => face.includes(sg))) face = mainB(m.k.b) + ' ' + face;
-    ok.push({ line, ...m, b: face });
+    ok.push({ line, ...m, b: face, taste });
   }
   const rep = document.getElementById('report');
   rep.innerHTML = '';
   const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; rep.appendChild(d); };
   for (const o of ok) add('ok', `${o.line} → ${o.k.p}・${o.k.n}` +
-    (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）'));
+    (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）') +
+    (o.taste ? `　味わい: ${o.taste}` : ''));
   for (const n of ng) add('ng', `${n.line} → ${n.err}`);
   if (ng.length) add('note', '✗の行はURLに入っていません。行を直して、もう一度押してください。');
   const dupKura = ok.length - new Set(ok.map(o => o.k.p + '|' + o.k.n)).size;
@@ -216,10 +226,16 @@ document.getElementById('make').addEventListener('click', () => {
     return c ? `${o.k.id}.${c}` : o.k.id;
   }).join(',');
   const url = BASE + '?k=' + encodeURIComponent(kai).replace(/%2C/gi, ',');
+  // 味わいは紙の一覧にしか要らない。**札のURL（＝QRの中身）には入れない**——
+  // 入れるとQRのモジュールが増えて40mmでは読めなくなる（2026-09-18 実測）
+  const tz = ok.map(o => kaiTasteEncode(o.taste));
+  // **1件ずつ符号化してから生のカンマで繋ぐ**。まとめて符号化して %2C を , に戻すと、
+  // 味わいに書かれた半角カンマまで区切りになって1本ずつずれる（qa係が検出）
+  const tq = tz.some(Boolean) ? '&t=' + tz.map(encodeURIComponent).join(',') : '';
   const a = document.getElementById('kai-url');
   a.href = url; a.textContent = url;
   document.getElementById('map-url').href = url.replace('?k=', 'map.html?k=');
-  document.getElementById('list-url').href = url.replace('?k=', 'list.html?k=');
+  document.getElementById('list-url').href = url.replace('?k=', 'list.html?k=') + tq;
   document.getElementById('qr').innerHTML = '';
   qrObj = new QRCode(document.getElementById('qr'), { text: url, width: 208, height: 208, correctLevel: QRCode.CorrectLevel.M });
   out.hidden = false;

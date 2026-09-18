@@ -6,7 +6,10 @@
   const search = location.search;
   const qp = new URLSearchParams(search);
   if (!qp.get('k') && !qp.get('kai')) return;   // 新形式 ?k= と旧形式 ?kai= の両方で出す
-  const url = location.href.replace(/[^/]*(\?.*)?$/, '') + 'index.html' + search;
+  // 味わい（t=）は紙の一覧にだけ要るもので、**札のURL＝QRの中身からは外す**。
+  // 入れるとQRのモジュールが増えて40mmでは読めなくなる（2026-09-18）
+  const fudaSearch = search.replace(/[?&]t=[^&]*/g, '').replace(/^&/, '?');
+  const url = location.href.replace(/[^/]*(\?.*)?$/, '') + 'index.html' + fudaSearch;
 
   const css = document.createElement('style');
   css.textContent = `
