@@ -19,7 +19,7 @@
   .kura { font-size: 0.9rem; margin: 0 0 6px; }
   .rep { color: var(--sub); font-size: 0.78rem; }
   .story { font-size: 0.86rem; color: var(--sub); border-left: 2px solid var(--line); padding-left: 10px; margin: 10px 0 0; line-height: 1.7; }
-  .taste { display: none; }   /* 主催者の味わいコメントは紙にだけ出す（画面は蔵の事実だけで通す） */
+  .taste, .bar { display: none; }   /* 主催者の味わいコメントは紙にだけ出す（画面は蔵の事実だけで通す） */
   .story p { margin: 0 0 2px; }
   .links { margin-top: 10px; font-size: 0.8rem; display: flex; gap: 14px; }
   .links a { color: var(--accent); }
@@ -46,9 +46,10 @@
     .kura { display: inline; font-size: 0.72rem; }
     .kura::before { content: "　"; }
     .rep { display: none; }   /* 代表銘柄は会場で配る紙には要らない（画面には残す） */
-    .story { font-size: 0.66rem; margin: 0; padding-left: 6px; line-height: 1.4; }
+    .story { font-size: 0.66rem; margin: 0; padding-left: 0; border-left: 0; line-height: 1.4; }
     .story p:nth-child(2) { display: none; }
     .taste { display: inline; color: var(--accent); font-weight: 600; }   /* 主催者の言葉。蔵の物語とは色で分ける */
+    .bar { display: inline; color: var(--line); margin: 0 5px 0 6px; }    /* 棒から先が蔵の物語。味わいはその外 */
     .links, footer .nav { display: none; }
     footer { margin-top: 4mm; padding-top: 2mm; border-top: 0.5pt solid var(--accent);
              font-size: 0.62rem; line-height: 1.5; color: var(--accent); }
@@ -77,8 +78,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1789690874"></script>
-<script src="kura_data.js?v=1789690874"></script>
+<script src="kai_parse.js?v=1789694529"></script>
+<script src="kura_data.js?v=1789694529"></script>
 <script>
 // 会モードの一覧面。index.html・map.html と同じ会モードURL（kai_parse.js が解釈）を受け、リストに書いた順に並べる。
 // 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
@@ -117,13 +118,13 @@ if (!items.length) {
       <p class="kura">${esc(k.n)}</p>
       ${rep}
       ${lines.length || taste ? `<div class="story">${lines.map((l, j) =>
-        `<p>${j === 0 && taste ? `<span class="taste">◆ ${esc(taste)}　</span>` : ''}${esc(l)}</p>`).join('')
+        `<p>${j === 0 && taste ? `<span class="taste">◆ ${esc(taste)}</span>` : ''}<span class="bar">│</span>${esc(l)}</p>`).join('')
         || `<p><span class="taste">◆ ${esc(taste)}</span></p>`}</div>` : ''}
       <div class="links">${links.join('')}</div>
     </section>`;
   }).join('');
 }
 </script>
-<script src="kai_qr.js?v=1789690874"></script>
+<script src="kai_qr.js?v=1789694529"></script>
 </body>
 </html>

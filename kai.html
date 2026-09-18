@@ -68,7 +68,7 @@
 </main>
 
 <script src="kai_parse.js"></script>
-<script src="kura_data.js?v=1789690874"></script>
+<script src="kura_data.js?v=1789694529"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // tools/make_kai.py を廃止してここに一本化（2026-09-07）。照合規則は同一：
@@ -221,11 +221,13 @@ document.getElementById('make').addEventListener('click', () => {
   if (!ok.length) { out.hidden = true; return; }
   // URLは短ID形式（?k=）。顔はカタログ番号＋スペック辞書で圧縮する（kai_parse.js の kaiFaceEncode）。
   // 圧縮できない銘柄（委託醸造・PBなど）は生文字列のまま。表示は入力どおりのまま変わらない
+  // **1件ずつ符号化してから生のカンマで繋ぐ**。まとめて符号化して %2C を , に戻すと、
+  // 銘柄に書かれた半角カンマまで区切りになって蔵が1つずつずれる（t= と同じ穴・2026-09-18）
   const kai = ok.map(o => {
     const c = kaiFaceEncode(o.k, o.b === mainB(o.k.b) ? '' : o.b);
-    return c ? `${o.k.id}.${c}` : o.k.id;
+    return encodeURIComponent(c ? `${o.k.id}.${c}` : o.k.id);
   }).join(',');
-  const url = BASE + '?k=' + encodeURIComponent(kai).replace(/%2C/gi, ',');
+  const url = BASE + '?k=' + kai;
   // 味わいは紙の一覧にしか要らない。**札のURL（＝QRの中身）には入れない**——
   // 入れるとQRのモジュールが増えて40mmでは読めなくなる（2026-09-18 実測）
   const tz = ok.map(o => kaiTasteEncode(o.taste));

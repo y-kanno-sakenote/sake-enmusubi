@@ -94,16 +94,18 @@
   window.parseKai = function (list) {
     const q = new URLSearchParams(location.search);
     const out = [];
-    // 味わいは k= と同じ並び。見つからない蔵を捨てても対応がずれないよう、添字で引く。
-    // **q.get('t') は使わない**——%2C まで復号されるので、味わいに書かれた半角カンマが
-    // 区切りに化けて1本ずつずれる（qa係が検出）。生のクエリから取り、割ってから復号する
-    const _traw = (location.search.match(/[?&]t=([^&]*)/) || [])[1] || '';
-    const ts = _traw.split(',').map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
-    const nk = q.get('k');
-    if (nk) {
+    // k= も t= も **q.get() は使わない**——%2C まで復号されるので、銘柄や味わいに書かれた
+    // 半角カンマが区切りに化けて1本ずつずれる。生のクエリから取り、割ってから復号する。
+    // 味わいは k= と同じ並びで、見つからない蔵を捨てても対応がずれないよう添字で引く
+    const qraw = n => (location.search.match(new RegExp('[?&]' + n + '=([^&]*)')) || [])[1] || '';
+    const dec = x => { try { return decodeURIComponent(x); } catch (e) { return x; } };
+    const ts = qraw('t').split(',').map(dec);
+    const _kraw = qraw('k');
+    if (_kraw) {
       let _i = -1;
-      for (const part of nk.split(',')) {
+      for (const _enc of _kraw.split(',')) {
         _i++;
+        const part = dec(_enc);
         const dot = part.indexOf('.');
         const id = (dot < 0 ? part : part.slice(0, dot)).trim();
         const face = dot < 0 ? '' : part.slice(dot + 1).trim();
