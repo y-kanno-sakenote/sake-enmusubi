@@ -193,8 +193,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1790493869"></script>
-<script src="kura_data.js?v=1790493869"></script>
+<script src="kai_parse.js?v=1790514302"></script>
+<script src="kura_data.js?v=1790514302"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -268,7 +268,7 @@ const MOODS = {
 function moodHit(k) {
   if (!mood) return false;
   const m = MOODS[mood];
-  if (m.chars) return [...m.chars].some(c => cleanBrand(k.b).includes(c));
+  if (m.chars) return [...m.chars].some(c => faceText(k, false).includes(c));
   return !!(k.t && m.tags.some(t => k.t.includes(t)));
 }
 
@@ -312,6 +312,17 @@ function coreName(n) {
 function mainBrand(b) {
   return cleanBrand(b).split(/[・／,、]/)[0].trim() || b;
 }
+
+// 札の顔（縁で選ばれる1本）になれる銘柄。日本酒でないと根拠のある銘柄（k.nx・判定は tools/brand_kind.py）は除く。
+// withB2=false は代表銘柄（名簿）だけ。データは消さない＝副銘柄の一覧（地図など）には今までどおり出る（2026-09-27 決定1）
+function faceSegs(k, withB2 = true) {
+  const nx = new Set((k.nx || '').split('・').filter(Boolean));
+  return cleanBrand(k.b + (withB2 && k.b2 ? '・' + k.b2 : '')).split(/[・／,、]/)
+    .map(x => x.trim()).filter(x => x && !nx.has(x));
+}
+function faceText(k, withB2 = true) { return faceSegs(k, withB2).join('・'); }
+// 既定の札の顔：代表銘柄の先頭。それが日本酒でなければ、代表銘柄→副銘柄の順で最初に残る銘柄
+function faceMain(k) { return faceSegs(k, false)[0] || faceSegs(k)[0] || mainBrand(k.b); }
 
 // ============================================================================
 // 縁の結び方 v2（design/50_story_v2_design.md §3・§4／2026-08-27 F1）
@@ -502,7 +513,7 @@ for (const k of KURA) {
   (k.ft || []).forEach(t => { FT_N[t] = (FT_N[t] || 0) + 1; });
   PREF_N[k.p] = (PREF_N[k.p] || 0) + 1;
   if (k.y) YEAR_N++;
-  new Set([...cleanBrand(k.b + '・' + (k.b2 || '')), ...coreName(k.n)])
+  new Set([...faceText(k), ...coreName(k.n)])
     .forEach(c => CHAR_N.set(c, (CHAR_N.get(c) || 0) + 1));
 }
 const _moodN = {};
@@ -589,7 +600,7 @@ function match(force) {
   for (const k of (KAI || KURA)) {
     let s = 0;
     const hits = [];
-    if (moji && (cleanBrand(k.b + '・' + (k.b2 || '')).includes(moji) || coreName(k.n).includes(moji))) { s += 120 * mojiW; hits.push('moji'); }
+    if (moji && (faceText(k).includes(moji) || coreName(k.n).includes(moji))) { s += 120 * mojiW; hits.push('moji'); }
     const card = storyCardFor(k, cards);
     if (card) { s += 80 * rare(KT_N[card]); hits.push('story'); }
     const lh = terms.length ? layerHit(k, terms) : null;
@@ -650,7 +661,7 @@ function reasonText(k, hits, card, lh, axisIn, byMbti) {
 
   switch (axis) {
     case 'moji': {
-      const cb = cleanBrand(k.b + (k.b2 ? '・' + k.b2 : ''));
+      const cb = faceText(k);
       const seg = cb.split(/[・／,、]/).map(x => x.trim()).find(x => x.includes(moji));
       const where = seg ? `銘柄「${seg}」` : `蔵の名「${coreName(k.n)}」`;
       return `${name}の一字「${moji}」が、${where}の中に生きています。`;
@@ -677,8 +688,8 @@ function reasonText(k, hits, card, lh, axisIn, byMbti) {
     case 'mood': {
       const m = MOODS[mood];
       if (m.chars) {
-        const c = [...m.chars].find(ch => cleanBrand(k.b).includes(ch));
-        const seg = cleanBrand(k.b).split(/[・／,、]/).map(x => x.trim()).find(x => x.includes(c)) || mainBrand(k.b);
+        const c = [...m.chars].find(ch => faceText(k, false).includes(ch));
+        const seg = faceSegs(k, false).find(x => x.includes(c)) || faceMain(k);
         return `祝いの日に、めでたい「${c}」の字を名に持つ「${seg}」を。`;
       }
       return m.text;
@@ -714,13 +725,14 @@ function show(src) {
   const desc = document.getElementById('hito-desc').value.trim();
   document.getElementById('r-place').textContent = `${k.p} ${k.c}`;
   // 縁を持つ銘柄を札の顔にする（名縁・祝い字が副銘柄にヒットした場合の不一致防止）
-  let face = mainBrand(k.b);
+  // 日本酒でない銘柄（k.nx）は札の顔にしない（2026-09-27 決定1）
+  let face = faceMain(k);
   // 名縁は副銘柄(b2)にも当たるので、札の顔を探す範囲も縁文と同じ集合にそろえる
-  const segs = cleanBrand(k.b + (k.b2 ? '・' + k.b2 : '')).split(/[・／,、]/).map(x => x.trim()).filter(Boolean);
+  const segs = faceSegs(k);
   const mj = mojiChar();
   if (hits.includes('moji') && mj) face = segs.find(x => x.includes(mj)) || face;
   else if (hits.includes('mood') && mood && MOODS[mood].chars) {
-    const c = [...MOODS[mood].chars].find(ch => cleanBrand(k.b).includes(ch));
+    const c = [...MOODS[mood].chars].find(ch => faceText(k, false).includes(ch));
     if (c) face = segs.find(x => x.includes(c)) || face;
   }
   if (KAI && k._kai) face = k._kai;   // 会モード：札の顔は今日注がれる銘柄
@@ -801,6 +813,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1790493869"></script>
+<script src="kai_qr.js?v=1790514302"></script>
 </body>
 </html>
