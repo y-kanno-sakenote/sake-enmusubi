@@ -100,8 +100,8 @@
 <div class="layers" id="layers"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="kai_parse.js?v=1790514302"></script>
-<script src="map_data.js?v=1790514302"></script>
+<script src="kai_parse.js?v=1790515148"></script>
+<script src="map_data.js?v=1790515149"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
 // 下地は2種：淡色地図（既定）と白地図（会場のスクリーン向け・輪郭とピンだけ）。どちらも国土地理院タイル
@@ -244,6 +244,6 @@ if (KAI) {
   setTimeout(() => { map.invalidateSize(); if (map.getSize().x > 0) fitKai(); else map.once('resize', fitKai); }, 0);
 }
 </script>
-<script src="kai_qr.js?v=1790514302"></script>
+<script src="kai_qr.js?v=1790515148"></script>
 </body>
 </html>

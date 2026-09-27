@@ -193,8 +193,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1790514302"></script>
-<script src="kura_data.js?v=1790514302"></script>
+<script src="kai_parse.js?v=1790515148"></script>
+<script src="kura_data.js?v=1790515148"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -315,10 +315,12 @@ function mainBrand(b) {
 
 // 札の顔（縁で選ばれる1本）になれる銘柄。日本酒でないと根拠のある銘柄（k.nx・判定は tools/brand_kind.py）は除く。
 // withB2=false は代表銘柄（名簿）だけ。データは消さない＝副銘柄の一覧（地図など）には今までどおり出る（2026-09-27 決定1）
+// 名簿が「清酒:天吹」のように品目つきで書いている蔵（佐賀）は、見せるときだけ先頭の「清酒:」を外す（データはそのまま）
 function faceSegs(k, withB2 = true) {
   const nx = new Set((k.nx || '').split('・').filter(Boolean));
   return cleanBrand(k.b + (withB2 && k.b2 ? '・' + k.b2 : '')).split(/[・／,、]/)
-    .map(x => x.trim()).filter(x => x && !nx.has(x));
+    .map(x => x.trim()).filter(x => x && !nx.has(x))
+    .map(x => x.replace(/^(清酒|日本酒)[:：]\s*/, '')).filter(Boolean);
 }
 function faceText(k, withB2 = true) { return faceSegs(k, withB2).join('・'); }
 // 既定の札の顔：代表銘柄の先頭。それが日本酒でなければ、代表銘柄→副銘柄の順で最初に残る銘柄
@@ -813,6 +815,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1790514302"></script>
+<script src="kai_qr.js?v=1790515148"></script>
 </body>
 </html>
