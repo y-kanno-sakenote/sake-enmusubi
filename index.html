@@ -193,8 +193,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1790493041"></script>
-<script src="kura_data.js?v=1790493041"></script>
+<script src="kai_parse.js?v=1790493869"></script>
+<script src="kura_data.js?v=1790493869"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -291,7 +291,10 @@ function mojiChar() {
   // 「米のささやき」に、「ヒカル」→「ヒ」が「コシヒカリ」に当たる（テニス→ニスと同型）
   return best;
 }
+// 共有文（結果をコピー）の間だけ呼び名を差し替える。自分に贈るときの投稿は本人の声なので「わたし」
+let callNameOverride = null;
 function callName() {
+  if (callNameOverride) return callNameOverride;
   return who === 'oshi' ? '推し' : who === 'jibun' ? 'あなた' : 'あの人';
 }
 
@@ -770,8 +773,15 @@ document.getElementById('again').addEventListener('click', () => show('again'));
 document.getElementById('copy').addEventListener('click', () => {
   if (!window._last) return;
   const { k, hits, card, lh, face, axis } = window._last;
-  const firstReason = reasonText(k, hits, card, lh, axis, window._last.byMbti).split('。')[0] + '。';
-  const text = `【酒縁結び】${callName()}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\n${who === 'jibun' ? 'あなた' : 'あなたの' + callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
+  // 自分に贈るときは、投稿した本人＝「わたし」、読む人＝「あなた」。2つの「あなた」が別人を指さないようにする
+  // （1行目の主語も、2行目の縁文の「あなたが生まれる…」も「わたし」にそろえる）
+  callNameOverride = who === 'jibun' ? 'わたし' : null;
+  let firstReason, poster;
+  try {
+    firstReason = reasonText(k, hits, card, lh, axis, window._last.byMbti).split('。')[0] + '。';
+    poster = callName();
+  } finally { callNameOverride = null; }
+  const text = `【酒縁結び】${poster}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\n${who === 'jibun' ? 'あなた' : 'あなたの' + callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
   const b = document.getElementById('copy');
   const done = ok => {
     b.textContent = ok ? 'コピーしました' : 'コピーできませんでした';
@@ -791,6 +801,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1790493041"></script>
+<script src="kai_qr.js?v=1790493869"></script>
 </body>
 </html>
