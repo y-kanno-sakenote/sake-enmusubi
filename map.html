@@ -100,8 +100,8 @@
 <div class="layers" id="layers"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="kai_parse.js?v=1793848149"></script>
-<script src="map_data.js?v=1793848149"></script>
+<script src="kai_parse.js?v=1793854600"></script>
+<script src="map_data.js?v=1793854600"></script>
 <script>
 const map = L.map('map', { preferCanvas: true }).setView([37.5, 137.0], 5);
 // 下地は2種：淡色地図（既定）と白地図（会場のスクリーン向け・輪郭とピンだけ）。どちらも国土地理院タイル
@@ -131,7 +131,7 @@ const LAYERS = [
 // 引数名にLを使うとLeafletのLを隠すため v とする（unknownはその他へ寄せる）
 const uiLayer = v => (v === 'sake' || v === 'mirin' || v === 'shochu') ? v : 'other';
 // 会モード：index.html と同じ会モードURL（kai_parse.js が解釈）を受けて、今日の会の蔵だけを描く
-const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s\u3000]/g, '');
+const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴㈾]|[（(](株|有|資|名|同)[)）]|[\s\u3000]/g, '');
 const KAI = (() => { const r = parseKai(KURA_MAP); return r ? r.map(x => x.k) : null; })();
 const DATA = KAI || KURA_MAP;
 const groups = {}, counts = {};
@@ -244,6 +244,6 @@ if (KAI) {
   setTimeout(() => { map.invalidateSize(); if (map.getSize().x > 0) fitKai(); else map.once('resize', fitKai); }, 0);
 }
 </script>
-<script src="kai_qr.js?v=1793848149"></script>
+<script src="kai_qr.js?v=1793854600"></script>
 </body>
 </html>

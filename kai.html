@@ -75,7 +75,7 @@
 </main>
 
 <script src="kai_parse.js"></script>
-<script src="kura_data.js?v=1793848149"></script>
+<script src="kura_data.js?v=1793854600"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // tools/make_kai.py を廃止してここに一本化（2026-09-07）。照合規則は同一：
@@ -86,7 +86,7 @@
 const BASE = 'https://y-kanno-sakenote.github.io/sake-enmusubi/';
 const SPEC = /純米大吟醸|純米吟醸|特別純米|特別本醸造|大吟醸|吟醸|本醸造|純米酒|純米|生原酒|原酒|生酒|にごり|無濾過|火入れ|ひやおろし|新酒|古酒|山廃|生酛|きもと|辛口|甘口|スパークリング/g;
 const nrm = x => x.normalize('NFKC').replace(/[\s　]/g, '');
-const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|\s/g, '');
+const core = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴㈾]|[（(](株|有|資|名|同)[)）]|\s/g, '');
 const mainB = b => b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
 
 const seg2k = new Map();   // 正規化した銘柄 → [{s:原表記, k:蔵}]
@@ -126,6 +126,23 @@ function matchLine(line) {
     if (uniqK(anc) > 1) {
       const f = anc.filter(x => L.split(x.c).join('').includes(x.k.p));   // 同名別蔵は県名で
       if (f.length) anc = f;
+      // 県名で決まらなければ、**行に書かれた銘柄**で絞る。法人格の組文字（㈾）まで畳むようにしたら、
+      // 伊藤酒造（株）＝三重・鈿女 と 伊藤酒造㈾＝福井・越の鷹 が同じ名前になり、(株)側が自分の
+      // 銘柄を書いても「複数の県」と言われるようになった（qa係が3組を検出・2026-11-05）
+      // 法人格まで書いてあれば、それで決める（「伊藤酒造（株）」＝三重・「伊藤酒造㈾」＝福井）。
+      // NFKC で ㈾→(資)・（株）→(株) に揃うので、書き方の揺れは吸収される
+      // **正式名に法人格が含まれる蔵だけ**この段で決める。法人格の無い短い正式名（兵庫「田中酒造場」）は、
+      // 法人格つきの別の蔵（岡山「（有）田中酒造場」）の行の中にも部分一致して、黙って誤結合した（qa係）
+      if (uniqK(anc) > 1) {
+        const raw = nrm(line);
+        const h = anc.filter(x => nrm(x.k.n) !== core(nrm(x.k.n)) && raw.includes(nrm(x.k.n)));
+        if (h.length && uniqK(h) === 1) anc = h;
+      }
+      if (uniqK(anc) > 1) {
+        const rest = L.split(anc[0].c).join('');
+        const g = anc.filter(x => [...seg2k].some(([key, es]) => rest.includes(key) && es.some(e => e.k === x.k)));
+        if (g.length && uniqK(g) === 1) anc = g;
+      }
       if (uniqK(anc) > 1)
         return { err: `蔵名「${anc[0].k.n}」が複数の県にあります`, cands: anc.map(x => x.k) };
     }
@@ -184,7 +201,7 @@ function faceOf(line, k, fallback, anc) {
     f = f.replace(new RegExp(base, 'g'), ' ');
   }
   if (k.p) f = f.replace(new RegExp([...k.p].map(esc).join('\\s*'), 'g'), ' ');
-  f = f.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|\((株|有|資|名|同)\)/g, ' ');   // 法人格の書き残しも顔に出さない
+  f = f.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴㈾]|\((株|有|資|名|同)\)/g, ' ');   // 法人格の書き残しも顔に出さない
   f = f.replace(/[（）()「」『』\[\]／,、。:：\/\-–—]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^の|の$/g, '').trim();
   return f || fallback;
 }

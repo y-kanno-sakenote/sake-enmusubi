@@ -79,12 +79,12 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1793848149"></script>
-<script src="kura_data.js?v=1793848149"></script>
+<script src="kai_parse.js?v=1793854600"></script>
+<script src="kura_data.js?v=1793854600"></script>
 <script>
 // 会モードの一覧面。index.html・map.html と同じ会モードURL（kai_parse.js が解釈）を受け、リストに書いた順に並べる。
 // 載せるのはDBにある事実だけ。銘柄が蔵のカタログに無いとき（委託醸造・PB）は主催者入力をそのまま顔にし、蔵の代表銘柄を添える
-const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');   // 地図リンクの検索語に使う
+const coreName = n => n.replace(/株式会社|有限会社|合資会社|合名会社|合同会社|[㈱㈲㈴㈾]|[（(](株|有|資|名|同)[)）]|[\s　]/g, '');   // 地図リンクの検索語に使う
 const mainBrand = b => b.replace(/[（(].*?[)）]/g, '').split(/[・／,、]/)[0].trim() || b;
 const items = parseKai(KURA) || [];
 
@@ -126,6 +126,6 @@ if (!items.length) {
   }).join('');
 }
 </script>
-<script src="kai_qr.js?v=1793848149"></script>
+<script src="kai_qr.js?v=1793854600"></script>
 </body>
 </html>
