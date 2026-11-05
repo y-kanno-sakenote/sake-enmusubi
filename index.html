@@ -130,7 +130,7 @@
       <button class="chip" data-v="iwau" style="flex:1 1 auto; padding:10px 12px;">祝いたい日</button>
       <button class="chip" data-v="ganbatta" style="flex:1 1 auto; padding:10px 12px;">がんばった日</button>
       <button class="chip" data-v="hajimeta" style="flex:1 1 auto; padding:10px 12px;">新しく始めた日</button>
-      <button class="chip" data-v="natsukashii" style="flex:1 1 auto; padding:10px 12px;">懐かしい日</button>
+      <button class="chip" data-v="hitori" style="flex:1 1 auto; padding:10px 12px;">ひとりの日</button>
       <button class="chip" data-v="hekonda" style="flex:1 1 auto; padding:10px 12px;">へこんだ日</button>
     </div>
   </div>
@@ -193,8 +193,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1793860444"></script>
-<script src="kura_data.js?v=1793860444"></script>
+<script src="kai_parse.js?v=1793874877"></script>
+<script src="kura_data.js?v=1793874877"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -257,19 +257,22 @@ document.getElementById('mood').addEventListener('click', e => {
   if (mood === v) { mood = null; } else { mood = v; b.classList.add('on'); }
 });
 
+// 2026-11-05 見直し（design/60_tag_v3_design.md）：引く条件は事実タグ k.ft（根拠文つき）。「懐かしい日」は外し「ひとりの日」を入れた。
+// 文言は ui係の案。中身が広がった3つ（新しく始めた・へこんだ・ひとり）は、どの事実タグに当たっても嘘にならない言い方にしてある
 const MOODS = {
-  iwau:      { chars: '寿福祝鶴亀喜慶',                    text: null },
-  ganbatta:  { tags: ['受賞歴'],                           text: 'がんばった今日に、賞に輝いた蔵の一本を。' },
-  hajimeta:  { tags: ['新蔵', '転業参入'],                  text: '新しい一歩の日に、同じく新しい一歩を踏み出した蔵を。' },
-  natsukashii: { tags: ['老舗', '伝統製法'],                text: '懐かしい気分の日に、長い時を重ねてきた蔵の一本を。' },
-  hekonda:   { tags: ['復活蔵', '被災・移転からの再起'],     text: 'へこんだ日に。この蔵も一度立ち止まって、また醸し始めました。' },
+  iwau:     { chars: '寿福祝鶴亀喜慶', text: null },
+  ganbatta: { ft: ['評価_金賞', '評価_受賞', '評価_海外受賞'], text: 'がんばった日に、賞をとった蔵の一本を。' },
+  // 蔵_転業参入は外した：99蔵中85蔵が江戸〜戦前の話で「新しい一歩」が200年前を指すため（2026-11-05 オーナー判断。気質札「作り変える」には使う）
+  hajimeta: { ft: ['蔵_新設', '蔵_事業承継', '人_代替わり'], text: '新しく始めた日に、新しい一歩を踏み出した蔵の一本を。' },
+  hekonda:  { ft: ['転機_休造から再開', '転機_被災から再建', '転機_移転'], text: 'へこんだ日に、一度出直した蔵の一本を。' },
+  hitori:   { ft: ['立地_地域唯一', '立地_離島', '立地_山間', '人_蔵元杜氏'], text: 'ひとりの日に、自分の足で立つ蔵の一本を。' },
 };
 
 function moodHit(k) {
   if (!mood) return false;
   const m = MOODS[mood];
   if (m.chars) return [...m.chars].some(c => faceText(k, false).includes(c));
-  return !!(k.t && m.tags.some(t => k.t.includes(t)));
+  return !!(k.ft && m.ft.some(t => k.ft.includes(t)));
 }
 
 // 呼び名（縁文の主語）
@@ -361,10 +364,11 @@ const FACT_PHRASE = {
   "転機_被災から再建": "被災から建て直した蔵",
   "転機_移転": "蔵を移してでも続けた蔵",
   "立地_地域唯一": "その土地で、いま一軒だけの蔵",
-  "立地_離島": "島にただ一軒の蔵",
+  "立地_離島": "島で醸す蔵",
   "立地_山間": "山あいで醸す蔵",
   "蔵_新設": "新しく建った蔵",
   "蔵_転業参入": "別の家業から酒造りに入った蔵",
+  "蔵_事業承継": "新しい担い手に引き継がれた蔵",
   "創業_平成以降": "平成に入ってから始まった蔵",
   "迎える_見学": "人を蔵に迎え入れている蔵",
   "迎える_カフェ併設": "蔵にカフェを開いている蔵",
@@ -815,6 +819,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1793860444"></script>
+<script src="kai_qr.js?v=1793874877"></script>
 </body>
 </html>
