@@ -29,11 +29,17 @@
     background: var(--accent); color: #fff; border: none; border-radius: 6px;
   }
   button.ghost { background: var(--card); color: var(--ink); border: 1px solid var(--line); letter-spacing: 0.1em; text-indent: 0.1em; }
+  .tmpl { margin: 0 0 10px; font-size: 0.85rem; }
+  .tmpl a { color: var(--accent); }
+  .tmpl small { color: var(--sub); font-size: 0.78rem; margin-left: 10px; }
   #report { margin-top: 24px; font-size: 0.92rem; }
   #report .ok::before { content: "◎ "; color: var(--accent); }
   #report .ng::before { content: "✗ "; }
   #report .ng { color: var(--accent); }
   #report .note { color: var(--sub); font-size: 0.85rem; }
+  #report button.pick { display: inline-block; width: auto; margin: 2px 0 2px 8px; padding: 2px 12px;
+    font: inherit; font-size: 0.82rem; letter-spacing: 0.04em; text-indent: 0; vertical-align: 1px;
+    background: var(--card); color: var(--accent); border: 1px solid var(--accent); border-radius: 14px; }
   #out { margin-top: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
   /* URLは長くなる（会の本数だけ伸びる）。全文は出さず1行に省略＝コピーとQRで使ってもらう */
   #kai-url { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -48,7 +54,8 @@
   <h1>会じたく</h1>
   <p class="sub">日本酒会のリストを貼ると、その日の酒だけで縁を結ぶURLとQRができます（主催者用）</p>
 
-  <textarea id="list" placeholder="1行に1本。スペックが混ざっていても大丈夫です。&#10;例：&#10;剣菱 純米酒&#10;満寿泉 大吟醸&#10;奥丹波&#10;&#10;表計算ソフトから範囲をコピーして貼ると、いちばん右の列を味わいコメントとして拾います（紙の一覧にだけ出ます）。&#10;&#10;同じ銘柄の蔵が複数あるときは、行に蔵名か県名を足してください（例：北海道の男山）"></textarea>
+  <p class="tmpl"><a href="#" id="dl-template">記入用のファイルをダウンロード →</a><small>表計算ソフトで開いて書き、範囲をコピーして下に貼ります</small></p>
+  <textarea id="list" placeholder="1行に1本。スペックが混ざっていても大丈夫です。&#10;例：&#10;剣菱 純米酒&#10;満寿泉 大吟醸&#10;奥丹波&#10;&#10;表計算ソフトから範囲をコピーして貼ると、いちばん右の列を味わいコメントとして拾います（紙の一覧にだけ出ます）。"></textarea>
   <button id="make">URL を つくる</button>
 
   <div id="report"></div>
@@ -68,7 +75,7 @@
 </main>
 
 <script src="kai_parse.js"></script>
-<script src="kura_data.js?v=1790601117"></script>
+<script src="kura_data.js?v=1793844753"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // tools/make_kai.py を廃止してここに一本化（2026-09-07）。照合規則は同一：
@@ -120,7 +127,7 @@ function matchLine(line) {
       const f = anc.filter(x => L.split(x.c).join('').includes(x.k.p));   // 同名別蔵は県名で
       if (f.length) anc = f;
       if (uniqK(anc) > 1)
-        return { err: `蔵名「${anc[0].k.n}」が複数の県にあります（${anc.map(x => x.k.p).join('／')}）。行に県名を足してください` };
+        return { err: `蔵名「${anc[0].k.n}」が複数の県にあります`, cands: anc.map(x => x.k) };
     }
     let { k, c } = anc[0];
     const c0 = c;                               // 最初に錨にした文字列（顔から外すために覚えておく）
@@ -151,7 +158,7 @@ function matchLine(line) {
     const f = cands.filter(c => (nrm(core(c.k.n)) && rest.includes(nrm(core(c.k.n)))) || rest.includes(c.k.p));
     if (f.length) cands = f;
     if (uniq(cands) > 1)
-      return { err: `銘柄「${cands[0].s}」の蔵が複数あります（${cands.map(c => c.k.p + '・' + c.k.n).join('／')}）。行に蔵名か県名を足してください` };
+      return { err: `銘柄「${cands[0].s}」の蔵が複数あります`, cands: [...new Set(cands.map(c => c.k))] };
   }
   return { k: cands[0].k, b: cands[0].s };
 }
@@ -182,8 +189,33 @@ function faceOf(line, k, fallback, anc) {
   return f || fallback;
 }
 
+// 記入用のファイル。見出しも例も「#」で始める——会じたくは # の行を読み飛ばすので、
+// 消し忘れてもその行が会に混ざらない。Excel で文字化けしないよう BOM 付きで出す
+document.getElementById('dl-template').addEventListener('click', e => {
+  e.preventDefault();
+  // 見出しに例を入れて1行で済ませる。「#」で始まるので、消さずに貼っても読み飛ばされる
+  const csv = '\ufeff' + [
+    '#蔵名（○○酒造）,商品名（純米酒 △△正宗）,味わい（スッキリ ※なくてもよい）',
+    '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+  ].join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = '日本酒リスト.csv';
+  document.body.appendChild(a);   // Safari は DOM に無い <a> の click() を無視する版がある
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
 let qrObj = null;
-document.getElementById('make').addEventListener('click', () => {
+const MAKE_NEW = 'URL を つくる', MAKE_AGAIN = 'URL を つくり直す';
+
+// 確認欄で選び直した蔵を覚えておく表。**行の文字列をキーにする**——行番号だと
+// 1本足した瞬間に全部ずれる。貼り直して文字列が変われば自然に外れる
+const PICKED = new Map();
+
+// 貼られた文字を読み、1行ずつ蔵に当てる。画面を触らないので何度でも呼べる
+function analyze() {
   // スプレッドシートから範囲コピーするとタブ区切りで入る。**最後の列を味わいコメント**として拾い、
   // 残りを酒の行として扱う。1列だけの貼り付け（従来）はそのまま動く。
   // 味わいは紙の一覧にだけ出すもので、縁の判定には一切使わない（2026-09-18）
@@ -196,27 +228,72 @@ document.getElementById('make').addEventListener('click', () => {
     });
   const ok = [], ng = [];
   for (const { line, taste } of rows) {
-    const m = matchLine(line);
-    if (m.err) { ng.push({ line, err: m.err }); continue; }
+    const picked = PICKED.get(line);
+    // 選び直した蔵には錨（anc）が無いので、faceOf は蔵名・県名だけを顔から外す。
+    // 外し切れずに蔵名が顔に残ることがあるため、確認欄では必ず「札の顔」を見せる
+    const m = picked ? { k: picked, b: mainB(picked.b), anc: [] } : matchLine(line);
+    if (m.err) { ng.push({ line, err: m.err, cands: m.cands }); continue; }
     // 蔵名を顔から外した結果、銘柄まで消えることがある（「一ノ蔵 特別純米」＝蔵名と銘柄が同じ語）。
     // 顔にその蔵の銘柄が1つも残っていなければ代表銘柄を頭に戻す。委託醸造・PB（own）は戻さない
     let face = faceOf(line, m.k, m.b, m.anc);
     const segs = (m.k.b + (m.k.b2 ? '・' + m.k.b2 : '')).replace(/[（(].*?[)）]/g, '')
       .split(/[・／,、]/).map(x => x.trim()).filter(x => x.length >= 2);
-    if (!m.own && face && !segs.some(sg => face.includes(sg))) face = mainB(m.k.b) + ' ' + face;
+    if (face && !segs.some(sg => face.includes(sg))) {
+      // **選び直した蔵には代表銘柄を貼らない**。選び直す行は、その蔵のカタログに無い銘柄が
+      // 書かれているのが普通で、頭に代表銘柄を足すと「豊能梅 十四代」のような
+      // 実在しない酒名ができる（qa係が116組を検出）。警告を付けて入力のまま出す
+      if (picked) m.own = true;
+      else if (!m.own) face = mainB(m.k.b) + ' ' + face;
+    }
     ok.push({ line, ...m, b: face, taste });
   }
+  return { ok, ng };
+}
+
+// 確認欄を描く。✗の行では「県名を足してください」と書く代わりに、**候補の蔵そのものを押せる形**で出す
+function render(ok, ng) {
   const rep = document.getElementById('report');
   rep.innerHTML = '';
   const add = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; rep.appendChild(d); };
   for (const o of ok) add('ok', `${o.line} → ${o.k.p}・${o.k.n}` +
     (o.b ? `（札の顔: ${o.b}${o.own ? ' ※蔵のカタログに無い銘柄' : ''}）` : '（銘柄が書かれていないため代表銘柄で表示）') +
     (o.taste ? `　味わい: ${o.taste}` : ''));
-  for (const n of ng) add('ng', `${n.line} → ${n.err}`);
-  if (ng.length) add('note', '✗の行はURLに入っていません。行を直して、もう一度押してください。');
+  for (const n of ng) {
+    const d = document.createElement('div');
+    d.className = 'ng';
+    d.appendChild(document.createTextNode(`${n.line} → ${n.err}`));
+    if (n.cands && n.cands.length) {
+      // 蔵名が同じなら県名だけ、違う蔵なら「県・蔵名」。**エラー文を割って候補を作らない**
+      const sameName = n.cands.every(k => core(k.n) === core(n.cands[0].n));
+      for (const k of n.cands) {
+        const b = document.createElement('button');
+        b.className = 'pick';
+        b.textContent = sameName ? k.p : `${k.p}・${k.n}`;
+        b.addEventListener('click', () => { PICKED.set(n.line, k); refresh(); });
+        d.appendChild(b);
+      }
+    }
+    rep.appendChild(d);
+  }
+  if (ng.length) add('note', '✗の行はURLに入っていません。候補を押すか、行を直してください。');
   const dupKura = ok.length - new Set(ok.map(o => o.k.p + '|' + o.k.n)).size;
   if (dupKura > 0) add('note', `同じ蔵の銘柄が複数あります。札は蔵ごとに1枚で、顔は下の行の銘柄になります。`);
+}
 
+// 選び直したら**URLとQRを消す**。黙って作り直すと、配った紙と新しいQRのどちらが正か分からなくなる。
+// 消えていれば主催者は必ず「URL を つくる」を押し直し、全部の行をもう一度見る
+function refresh() {
+  const { ok, ng } = analyze();
+  render(ok, ng);
+  document.getElementById('out').hidden = true;
+  // 迷い行を押し切ると案内が全部消えて、押し直す先が画面から無くなる。
+  // 新しい文言は足さず、ボタンの文字で示す（qa係の指摘）
+  document.getElementById('make').textContent = MAKE_AGAIN;
+}
+
+document.getElementById('make').addEventListener('click', () => {
+  const { ok, ng } = analyze();
+  render(ok, ng);
   const out = document.getElementById('out');
   if (!ok.length) { out.hidden = true; return; }
   // URLは短ID形式（?k=）。顔はカタログ番号＋スペック辞書で圧縮する（kai_parse.js の kaiFaceEncode）。
@@ -241,6 +318,7 @@ document.getElementById('make').addEventListener('click', () => {
   document.getElementById('qr').innerHTML = '';
   qrObj = new QRCode(document.getElementById('qr'), { text: url, width: 208, height: 208, correctLevel: QRCode.CorrectLevel.M });
   out.hidden = false;
+  document.getElementById('make').textContent = MAKE_NEW;
 });
 
 document.getElementById('copy').addEventListener('click', () => {
