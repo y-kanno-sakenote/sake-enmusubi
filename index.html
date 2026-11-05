@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>酒縁結び — 誰かと、縁のある一本</title>
-<meta name="description" content="推しや大切な人を描くと、縁のある日本酒が見つかる。全国1,600の蔵元データベースから、味ではなく「縁」で一本を結びます。">
+<meta name="description" content="大切な人を描くと、縁のある日本酒が見つかる。全国1,600の蔵元データベースから、味ではなく「縁」で一本を結びます。">
 <meta property="og:title" content="酒縁結び — 誰かと、縁のある一本">
-<meta property="og:description" content="推しや大切な人を描くと、縁のある日本酒が見つかる。名前の一字・ゆかりの土地・今日の気分から、全国の蔵と縁を結ぶおみくじ型レコメンド。">
+<meta property="og:description" content="大切な人を描くと、縁のある日本酒が見つかる。名前の一字・ゆかりの土地・今日の気分から、全国の蔵と縁を結ぶおみくじ型レコメンド。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://y-kanno-sakenote.github.io/sake-enmusubi/">
 <meta name="twitter:card" content="summary">
@@ -118,8 +118,7 @@
   <div class="q">
     <p class="q-label">この一本は、誰のため？</p>
     <div class="chips" id="who">
-      <button class="chip on" data-v="oshi">推しに</button>
-      <button class="chip" data-v="hito">あの人に</button>
+      <button class="chip on" data-v="hito">あの人に</button>
       <button class="chip" data-v="jibun">自分に</button>
     </div>
   </div>
@@ -193,8 +192,8 @@
   </footer>
 </main>
 
-<script src="kai_parse.js?v=1793874877"></script>
-<script src="kura_data.js?v=1793874877"></script>
+<script src="kai_parse.js?v=1793884823"></script>
+<script src="kura_data.js?v=1793884823"></script>
 <script>
 const PREFS = ['北海道','青森','岩手','宮城','秋田','山形','福島','茨城','栃木','群馬','埼玉','千葉','東京','神奈川','新潟','富山','石川','福井','山梨','長野','岐阜','静岡','愛知','三重','滋賀','京都','大阪','兵庫','奈良','和歌山','鳥取','島根','岡山','広島','山口','徳島','香川','愛媛','高知','福岡','佐賀','長崎','熊本','大分','宮崎','鹿児島','沖縄'];
 const sel = document.getElementById('pref');
@@ -238,7 +237,8 @@ if (KAI) {
   }
 }
 
-let who = 'oshi';
+// 2026-11-05 2択に（推しは外した）。あの人に＝渡す一本、自分に＝飲む一本
+let who = 'hito';
 document.getElementById('who').addEventListener('click', e => {
   const b = e.target.closest('.chip');
   if (!b) return;
@@ -294,11 +294,11 @@ function mojiChar() {
   // 「米のささやき」に、「ヒカル」→「ヒ」が「コシヒカリ」に当たる（テニス→ニスと同型）
   return best;
 }
-// 共有文（結果をコピー）の間だけ呼び名を差し替える。自分に贈るときの投稿は本人の声なので「わたし」
+// 共有文（結果をコピー）の間だけ呼び名を差し替える。自分に（自分で飲む一本）のときの投稿は本人の声なので「わたし」
 let callNameOverride = null;
 function callName() {
   if (callNameOverride) return callNameOverride;
-  return who === 'oshi' ? '推し' : who === 'jibun' ? 'あなた' : 'あの人';
+  return who === 'jibun' ? 'あなた' : 'あの人';
 }
 
 // 括弧注記（(商品名…)等）を除いた銘柄文字列。マッチも表示もこちらを使う
@@ -642,6 +642,12 @@ function match(force) {
 // 主文にする縁を1本だけ選ぶ（最も係数の高い＝最も珍しい縁。同率なら基礎点の高いほう）
 function topAxis(k, hits, card, lh, force) {
   if (force && hits.includes(force)) return force;
+  // 自分に＝自分で飲む一本なので、今日の縁が立っていればそれを主文にする（2026-11-05 B案）。
+  // 得点の重みを1.2倍にする形も試したが、引かれる蔵も主文も400回×6場面で1件も変わらなかった
+  // （縁が重なる蔵は全部の縁を持つ札が選ばれ、主文は珍しさの順で決まるため）
+  // ただし一言が5層・気質札に当たって主文になれるときは従来どおり（一言に縁のある物語を下段に残すため）
+  const descHit = document.getElementById('hito-desc').value.trim() && (hits.includes('layer') || hits.includes('story'));
+  if (who === 'jibun' && mood && hits.includes('mood') && !descHit) return 'mood';
   const moji = mojiChar();
   const cand = [];
   if (hits.includes('moji')) cand.push({ w: rare(CHAR_N.get(moji) || 1), b: 120, t: 'moji' });
@@ -765,6 +771,8 @@ function show(src) {
     (axis === 'layer' && lh) ? lh.text : (layerText(k, axis, card) || k.s || '');
   // 主文が一言以外の縁になったときは、その言葉をここで受ける（主文は1本だけ・UIは増やさない）
   // MBTI由来で当たったときも、一言は縁文から外れるのでここで受ける＝書いた言葉を消さない
+  // 自分にのときも出す（「そんなあなたの隣に。」）。あの人にだけにすると、自分にでは書いた一言が
+  // 約8割の回で画面から消えた（qa実測 1440回中約1120回）ため、2026-11-05 オーナー判断で戻した
   document.getElementById('r-dedic').textContent =
     (desc && (byMbti || (axis !== 'story' && axis !== 'layer'))) ? `「${desc}」——そんな${callName()}の隣に。` : '';
   const hp = document.getElementById('r-hp');
@@ -791,7 +799,7 @@ document.getElementById('again').addEventListener('click', () => show('again'));
 document.getElementById('copy').addEventListener('click', () => {
   if (!window._last) return;
   const { k, hits, card, lh, face, axis } = window._last;
-  // 自分に贈るときは、投稿した本人＝「わたし」、読む人＝「あなた」。2つの「あなた」が別人を指さないようにする
+  // 自分に（自分で飲む一本）のときは、投稿した本人＝「わたし」、読む人＝「あなた」。2つの「あなた」が別人を指さないようにする
   // （1行目の主語も、2行目の縁文の「あなたが生まれる…」も「わたし」にそろえる）
   callNameOverride = who === 'jibun' ? 'わたし' : null;
   let firstReason, poster;
@@ -799,7 +807,7 @@ document.getElementById('copy').addEventListener('click', () => {
     firstReason = reasonText(k, hits, card, lh, axis, window._last.byMbti).split('。')[0] + '。';
     poster = callName();
   } finally { callNameOverride = null; }
-  const text = `【酒縁結び】${poster}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\n${who === 'jibun' ? 'あなた' : 'あなたの' + callName()}の一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
+  const text = `【酒縁結び】${poster}と縁のある一本は、${k.p}の「${face}」でした。\n${firstReason}\n\nあなたの一本も → https://y-kanno-sakenote.github.io/sake-enmusubi/\n#酒縁結び`;
   const b = document.getElementById('copy');
   const done = ok => {
     b.textContent = ok ? 'コピーしました' : 'コピーできませんでした';
@@ -819,6 +827,6 @@ document.getElementById('copy').addEventListener('click', () => {
   } else { fallback(); }
 });
 </script>
-<script src="kai_qr.js?v=1793874877"></script>
+<script src="kai_qr.js?v=1793884823"></script>
 </body>
 </html>
